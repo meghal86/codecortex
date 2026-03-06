@@ -264,14 +264,70 @@ export const CodeReferencesPanel = ({ onFocusNode }: CodeReferencesPanelProps) =
                 <X className="w-4 h-4" />
               </button>
             </div>
+
+            {/* NEW: Health Metrics Section */}
+            {(selectedNode?.properties.complexityScore !== undefined || selectedNode?.properties.hotspotScore !== undefined) && (
+              <div className="px-3 py-2 bg-elevated/40 border-b border-border-subtle flex flex-col gap-2">
+
+                {/* Composite Risk Score */}
+                <div className="flex items-center justify-between">
+                  {(() => {
+                    const complexity = selectedNode.properties.complexityScore || 0;
+                    const hotspot = selectedNode.properties.hotspotScore || 0;
+                    // Formula: (Complexity * 1.5) + (Hotspot * 2.5), capped at 100
+                    const riskScore = Math.min(100, Math.round((complexity * 1.5) + (hotspot * 2.5)));
+
+                    let riskColor = 'text-emerald-400';
+                    let riskLabel = 'Low Risk';
+                    if (riskScore > 75) { riskColor = 'text-rose-500'; riskLabel = 'Critical Risk'; }
+                    else if (riskScore > 50) { riskColor = 'text-orange-500'; riskLabel = 'High Risk'; }
+                    else if (riskScore > 25) { riskColor = 'text-amber-400'; riskLabel = 'Moderate Risk'; }
+
+                    return (
+                      <div className="flex items-center gap-2">
+                        <span className="text-text-muted font-semibold uppercase tracking-widest text-[10px]">Overall Risk</span>
+                        <div className="flex items-baseline gap-1.5">
+                          <span className={`text-lg font-black tracking-tight ${riskColor}`}>{riskScore}</span>
+                          <span className={`text-[10px] uppercase font-bold ${riskColor} opacity-80`}>{riskLabel}</span>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                {/* Sub-metrics */}
+                <div className="flex items-center gap-4 text-[10px] bg-surface/50 p-1.5 rounded border border-border-subtle">
+                  {selectedNode.properties.complexityScore !== undefined && (
+                    <div className="flex items-center gap-1.5" title="Cyclomatic Complexity + Line Count">
+                      <span className="text-text-muted uppercase tracking-tight">Complexity</span>
+                      <span className={`font-mono font-bold ${selectedNode.properties.complexityScore > 30 ? 'text-orange-400' : 'text-text-primary'}`}>
+                        {selectedNode.properties.complexityScore}
+                      </span>
+                    </div>
+                  )}
+                  {selectedNode.properties.hotspotScore !== undefined && (
+                    <div className="flex items-center gap-1.5" title="Centrality (Weight of incoming/outgoing calls)">
+                      <span className="text-text-muted uppercase tracking-tight">Hotspot</span>
+                      <span className={`font-mono font-bold ${selectedNode.properties.hotspotScore > 15 ? 'text-rose-400' : 'text-text-primary'}`}>
+                        {selectedNode.properties.hotspotScore}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-3 ml-auto text-text-muted opacity-80 font-mono">
+                    <span>In:{selectedNode.properties.inDegree || 0}</span>
+                    <span>Out:{selectedNode.properties.outDegree || 0}</span>
+                  </div>
+                </div>
+              </div>
+            )}
             <div className="flex-1 min-h-0 overflow-auto scrollbar-thin">
               {selectedFileContent ? (
                 <SyntaxHighlighter
                   language={
                     selectedFilePath?.endsWith('.py') ? 'python' :
-                    selectedFilePath?.endsWith('.js') || selectedFilePath?.endsWith('.jsx') ? 'javascript' :
-                    selectedFilePath?.endsWith('.ts') || selectedFilePath?.endsWith('.tsx') ? 'typescript' :
-                    'text'
+                      selectedFilePath?.endsWith('.js') || selectedFilePath?.endsWith('.jsx') ? 'javascript' :
+                        selectedFilePath?.endsWith('.ts') || selectedFilePath?.endsWith('.tsx') ? 'typescript' :
+                          'text'
                   }
                   style={customTheme as any}
                   showLineNumbers
@@ -334,122 +390,122 @@ export const CodeReferencesPanel = ({ onFocusNode }: CodeReferencesPanelProps) =
               <span className="text-xs text-text-muted ml-1">{aiReferences.length} reference{aiReferences.length !== 1 ? 's' : ''}</span>
             </div>
             <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin p-3 space-y-3">
-            {refsWithSnippets.map(({ ref, content, start, highlightStart, highlightEnd, totalLines }) => {
-          const nodeColor = ref.label ? (NODE_COLORS as any)[ref.label] || '#6b7280' : '#6b7280';
-          const hasRange = typeof ref.startLine === 'number';
-          const startDisplay = hasRange ? (ref.startLine ?? 0) + 1 : undefined;
-          const endDisplay = hasRange ? (ref.endLine ?? ref.startLine ?? 0) + 1 : undefined;
-          const language =
-            ref.filePath.endsWith('.py') ? 'python' :
-            ref.filePath.endsWith('.js') || ref.filePath.endsWith('.jsx') ? 'javascript' :
-            ref.filePath.endsWith('.ts') || ref.filePath.endsWith('.tsx') ? 'typescript' :
-            'text';
+              {refsWithSnippets.map(({ ref, content, start, highlightStart, highlightEnd, totalLines }) => {
+                const nodeColor = ref.label ? (NODE_COLORS as any)[ref.label] || '#6b7280' : '#6b7280';
+                const hasRange = typeof ref.startLine === 'number';
+                const startDisplay = hasRange ? (ref.startLine ?? 0) + 1 : undefined;
+                const endDisplay = hasRange ? (ref.endLine ?? ref.startLine ?? 0) + 1 : undefined;
+                const language =
+                  ref.filePath.endsWith('.py') ? 'python' :
+                    ref.filePath.endsWith('.js') || ref.filePath.endsWith('.jsx') ? 'javascript' :
+                      ref.filePath.endsWith('.ts') || ref.filePath.endsWith('.tsx') ? 'typescript' :
+                        'text';
 
-          const isGlowing = glowRefId === ref.id;
+                const isGlowing = glowRefId === ref.id;
 
-          return (
-            <div
-              key={ref.id}
-              ref={(el) => { refCardEls.current.set(ref.id, el); }}
-              className={[
-                'bg-elevated border border-border-subtle rounded-xl overflow-hidden transition-all',
-                isGlowing ? 'ring-2 ring-cyan-300/70 shadow-[0_0_0_6px_rgba(34,211,238,0.14)] animate-pulse' : '',
-              ].join(' ')}
-            >
-              <div className="px-3 py-2 border-b border-border-subtle bg-surface/40 flex items-start gap-2">
-                <span
-                  className="mt-0.5 px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide flex-shrink-0"
-                  style={{ backgroundColor: nodeColor, color: '#06060a' }}
-                  title={ref.label ?? 'Code'}
-                >
-                  {ref.label ?? 'Code'}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="text-xs text-text-primary font-medium truncate">
-                    {ref.name ?? ref.filePath.split('/').pop() ?? ref.filePath}
-                  </div>
-                  <div className="text-[11px] text-text-muted font-mono truncate">
-                    {ref.filePath}
-                    {startDisplay !== undefined && (
-                      <span className="text-text-secondary">
-                        {' '}
-                        • L{startDisplay}
-                        {endDisplay !== startDisplay ? `–${endDisplay}` : ''}
+                return (
+                  <div
+                    key={ref.id}
+                    ref={(el) => { refCardEls.current.set(ref.id, el); }}
+                    className={[
+                      'bg-elevated border border-border-subtle rounded-xl overflow-hidden transition-all',
+                      isGlowing ? 'ring-2 ring-cyan-300/70 shadow-[0_0_0_6px_rgba(34,211,238,0.14)] animate-pulse' : '',
+                    ].join(' ')}
+                  >
+                    <div className="px-3 py-2 border-b border-border-subtle bg-surface/40 flex items-start gap-2">
+                      <span
+                        className="mt-0.5 px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide flex-shrink-0"
+                        style={{ backgroundColor: nodeColor, color: '#06060a' }}
+                        title={ref.label ?? 'Code'}
+                      >
+                        {ref.label ?? 'Code'}
                       </span>
-                    )}
-                    {totalLines > 0 && <span className="text-text-muted"> • {totalLines} lines</span>}
-                  </div>
-                </div>
-                <div className="flex items-center gap-1">
-                  {ref.nodeId && (
-                    <button
-                      onClick={() => {
-                        const nodeId = ref.nodeId!;
-                        // Sync selection + focus graph
-                        if (graph) {
-                          const node = graph.nodes.find((n) => n.id === nodeId);
-                          if (node) setSelectedNode(node);
-                        }
-                        onFocusNode(nodeId);
-                      }}
-                      className="p-1.5 text-text-muted hover:text-text-primary hover:bg-hover rounded transition-colors"
-                      title="Focus in graph"
-                    >
-                      <Target className="w-4 h-4" />
-                    </button>
-                  )}
-                  <button
-                    onClick={() => removeCodeReference(ref.id)}
-                    className="p-1.5 text-text-muted hover:text-text-primary hover:bg-hover rounded transition-colors"
-                    title="Remove"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs text-text-primary font-medium truncate">
+                          {ref.name ?? ref.filePath.split('/').pop() ?? ref.filePath}
+                        </div>
+                        <div className="text-[11px] text-text-muted font-mono truncate">
+                          {ref.filePath}
+                          {startDisplay !== undefined && (
+                            <span className="text-text-secondary">
+                              {' '}
+                              • L{startDisplay}
+                              {endDisplay !== startDisplay ? `–${endDisplay}` : ''}
+                            </span>
+                          )}
+                          {totalLines > 0 && <span className="text-text-muted"> • {totalLines} lines</span>}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {ref.nodeId && (
+                          <button
+                            onClick={() => {
+                              const nodeId = ref.nodeId!;
+                              // Sync selection + focus graph
+                              if (graph) {
+                                const node = graph.nodes.find((n) => n.id === nodeId);
+                                if (node) setSelectedNode(node);
+                              }
+                              onFocusNode(nodeId);
+                            }}
+                            className="p-1.5 text-text-muted hover:text-text-primary hover:bg-hover rounded transition-colors"
+                            title="Focus in graph"
+                          >
+                            <Target className="w-4 h-4" />
+                          </button>
+                        )}
+                        <button
+                          onClick={() => removeCodeReference(ref.id)}
+                          className="p-1.5 text-text-muted hover:text-text-primary hover:bg-hover rounded transition-colors"
+                          title="Remove"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
 
-              <div className="overflow-x-auto">
-                {content ? (
-                  <SyntaxHighlighter
-                    language={language}
-                    style={customTheme as any}
-                    showLineNumbers
-                    startingLineNumber={start + 1}
-                    lineNumberStyle={{
-                      minWidth: '3em',
-                      paddingRight: '1em',
-                      color: '#5a5a70',
-                      textAlign: 'right',
-                      userSelect: 'none',
-                    }}
-                    lineProps={(lineNumber) => {
-                      const isHighlighted =
-                        hasRange &&
-                        lineNumber >= start + highlightStart + 1 &&
-                        lineNumber <= start + highlightEnd + 1;
-                      return {
-                        style: {
-                          display: 'block',
-                          backgroundColor: isHighlighted ? 'rgba(6, 182, 212, 0.14)' : 'transparent',
-                          borderLeft: isHighlighted ? '3px solid #06b6d4' : '3px solid transparent',
-                          paddingLeft: '12px',
-                          paddingRight: '16px',
-                        },
-                      };
-                    }}
-                    wrapLines
-                  >
-                    {content}
-                  </SyntaxHighlighter>
-                ) : (
-                  <div className="px-3 py-3 text-sm text-text-muted">
-                    Code not available in memory for <span className="font-mono">{ref.filePath}</span>
+                    <div className="overflow-x-auto">
+                      {content ? (
+                        <SyntaxHighlighter
+                          language={language}
+                          style={customTheme as any}
+                          showLineNumbers
+                          startingLineNumber={start + 1}
+                          lineNumberStyle={{
+                            minWidth: '3em',
+                            paddingRight: '1em',
+                            color: '#5a5a70',
+                            textAlign: 'right',
+                            userSelect: 'none',
+                          }}
+                          lineProps={(lineNumber) => {
+                            const isHighlighted =
+                              hasRange &&
+                              lineNumber >= start + highlightStart + 1 &&
+                              lineNumber <= start + highlightEnd + 1;
+                            return {
+                              style: {
+                                display: 'block',
+                                backgroundColor: isHighlighted ? 'rgba(6, 182, 212, 0.14)' : 'transparent',
+                                borderLeft: isHighlighted ? '3px solid #06b6d4' : '3px solid transparent',
+                                paddingLeft: '12px',
+                                paddingRight: '16px',
+                              },
+                            };
+                          }}
+                          wrapLines
+                        >
+                          {content}
+                        </SyntaxHighlighter>
+                      ) : (
+                        <div className="px-3 py-3 text-sm text-text-muted">
+                          Code not available in memory for <span className="font-mono">{ref.filePath}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                )}
-              </div>
-            </div>
-          );
-            })}
+                );
+              })}
             </div>
           </div>
         )}

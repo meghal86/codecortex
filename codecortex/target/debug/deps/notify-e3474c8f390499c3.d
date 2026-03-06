@@ -1,0 +1,11 @@
+/Users/meghalparikh/Downloads/GitNexus/codecortex/target/debug/deps/notify-e3474c8f390499c3.d: /Users/meghalparikh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-6.1.1/src/lib.rs /Users/meghalparikh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-6.1.1/src/fsevent.rs /Users/meghalparikh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-6.1.1/src/event.rs /Users/meghalparikh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-6.1.1/src/null.rs /Users/meghalparikh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-6.1.1/src/poll.rs /Users/meghalparikh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-6.1.1/src/config.rs /Users/meghalparikh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-6.1.1/src/error.rs
+
+/Users/meghalparikh/Downloads/GitNexus/codecortex/target/debug/deps/libnotify-e3474c8f390499c3.rmeta: /Users/meghalparikh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-6.1.1/src/lib.rs /Users/meghalparikh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-6.1.1/src/fsevent.rs /Users/meghalparikh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-6.1.1/src/event.rs /Users/meghalparikh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-6.1.1/src/null.rs /Users/meghalparikh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-6.1.1/src/poll.rs /Users/meghalparikh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-6.1.1/src/config.rs /Users/meghalparikh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-6.1.1/src/error.rs
+
+/Users/meghalparikh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-6.1.1/src/lib.rs:
+/Users/meghalparikh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-6.1.1/src/fsevent.rs:
+/Users/meghalparikh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-6.1.1/src/event.rs:
+/Users/meghalparikh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-6.1.1/src/null.rs:
+/Users/meghalparikh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-6.1.1/src/poll.rs:
+/Users/meghalparikh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-6.1.1/src/config.rs:
+/Users/meghalparikh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-6.1.1/src/error.rs:

@@ -18,7 +18,7 @@ import { LANGUAGE_QUERIES } from '../tree-sitter-queries.js';
 // tree-sitter-swift is an optionalDependency — may not be installed
 const _require = createRequire(import.meta.url);
 let Swift: any = null;
-try { Swift = _require('tree-sitter-swift'); } catch {}
+try { Swift = _require('tree-sitter-swift'); } catch { }
 import { findSiblingChild, getLanguageFromFilename } from '../utils.js';
 import { detectFrameworkFromAST } from '../framework-detection.js';
 import { generateId } from '../../../lib/utils.js';
@@ -40,6 +40,7 @@ interface ParsedNode {
     astFrameworkMultiplier?: number;
     astFrameworkReason?: string;
     description?: string;
+    complexityScore?: number;
   };
 }
 
@@ -151,8 +152,8 @@ const isNodeExported = (node: any, name: string, language: string): boolean => {
       while (current) {
         const type = current.type;
         if (type === 'export_statement' ||
-            type === 'export_specifier' ||
-            type === 'lexical_declaration' && current.parent?.type === 'export_statement') {
+          type === 'export_specifier' ||
+          type === 'lexical_declaration' && current.parent?.type === 'export_statement') {
           return true;
         }
         if (current.text?.startsWith('export ')) {
@@ -234,9 +235,9 @@ const isNodeExported = (node: any, name: string, language: string): boolean => {
       // Methods/properties are exported only if they have 'public' modifier
       while (current) {
         if (current.type === 'class_declaration' ||
-            current.type === 'interface_declaration' ||
-            current.type === 'trait_declaration' ||
-            current.type === 'enum_declaration') {
+          current.type === 'interface_declaration' ||
+          current.type === 'trait_declaration' ||
+          current.type === 'enum_declaration') {
           return true;
         }
         if (current.type === 'visibility_modifier') {
@@ -295,7 +296,7 @@ const findEnclosingFunctionId = (node: any, filePath: string): string | null => 
       }
 
       if (['function_declaration', 'function_definition', 'async_function_declaration',
-           'generator_function_declaration', 'function_item'].includes(current.type)) {
+        'generator_function_declaration', 'function_item'].includes(current.type)) {
         const nameNode = current.childForFieldName?.('name') ||
           current.children?.find((c: any) => c.type === 'identifier' || c.type === 'property_identifier');
         funcName = nameNode?.text;
@@ -759,14 +760,14 @@ function findClosureBody(argsNode: any): any | null {
     if (child.type === 'argument') {
       for (const inner of child.children ?? []) {
         if (inner.type === 'anonymous_function' ||
-            inner.type === 'arrow_function') {
+          inner.type === 'arrow_function') {
           return inner.childForFieldName?.('body') ??
             inner.children?.find((c: any) => c.type === 'compound_statement');
         }
       }
     }
     if (child.type === 'anonymous_function' ||
-        child.type === 'arrow_function') {
+      child.type === 'arrow_function') {
       return child.childForFieldName?.('body') ??
         child.children?.find((c: any) => c.type === 'compound_statement');
     }
@@ -1195,6 +1196,20 @@ const processFileGroup = (
       if (!nameNode && nodeLabel !== 'Constructor') continue;
       const nodeName = nameNode ? nameNode.text : 'init';
       const definitionNode = getDefinitionNodeFromCaptures(captureMap);
+
+      // Calculate complexity
+      let complexityScore = 1; // Base score
+      if (definitionNode) {
+        const lineCount = definitionNode.endPosition.row - definitionNode.startPosition.row + 1;
+        // Normalize line count contribution (capped)
+        complexityScore += Math.min(20, Math.floor(lineCount / 10));
+
+        // Count branch keywords in the node's text
+        const text = definitionNode.text || '';
+        const branches = (text.match(/\b(if|while|for|catch|case|match|switch|\?\.)\b/g) || []).length;
+        complexityScore += branches;
+      }
+
       const startLine = definitionNode ? definitionNode.startPosition.row : (nameNode ? nameNode.startPosition.row : 0);
       const nodeId = generateId(nodeLabel, `${file.path}:${nodeName}:${startLine}`);
 
@@ -1226,6 +1241,7 @@ const processFileGroup = (
             astFrameworkReason: frameworkHint.reason,
           } : {}),
           ...(description !== undefined ? { description } : {}),
+          complexityScore,
         },
       });
 

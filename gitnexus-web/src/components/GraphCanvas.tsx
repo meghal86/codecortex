@@ -27,6 +27,8 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle>((_, ref) => {
     isAIHighlightsEnabled,
     toggleAIHighlights,
     animatedNodes,
+    isHeatmapMode,
+    isolateBlastRadius,
   } = useAppState();
   const [hoveredNodeName, setHoveredNodeName] = useState<string | null>(null);
 
@@ -94,6 +96,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle>((_, ref) => {
     onStageClick: handleStageClick,
     highlightedNodeIds: effectiveHighlightedNodeIds,
     blastRadiusNodeIds: effectiveBlastRadiusNodeIds,
+    isolateBlastRadius,
     animatedNodes: effectiveAnimatedNodes,
     visibleEdgeTypes,
   });

@@ -8,6 +8,7 @@ import { ToolCallCard } from './ToolCallCard';
 import { isProviderConfigured } from '../core/llm/settings-service';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { ProcessesPanel } from './ProcessesPanel';
+import { PRPulsePanel } from './PRPulsePanel';
 export const RightPanel = () => {
   const {
     isRightPanelOpen,
@@ -28,7 +29,7 @@ export const RightPanel = () => {
   } = useAppState();
 
   const [chatInput, setChatInput] = useState('');
-  const [activeTab, setActiveTab] = useState<'chat' | 'processes'>('chat');
+  const [activeTab, setActiveTab] = useState<'chat' | 'processes' | 'pr-pulse'>('chat');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -221,7 +222,7 @@ export const RightPanel = () => {
               }`}
           >
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Nexus AI</span>
+            <span>Cortex AI</span>
           </button>
 
           {/* Processes Tab */}
@@ -234,6 +235,18 @@ export const RightPanel = () => {
           >
             <GitBranch className="w-3.5 h-3.5" />
             <span>Processes</span>
+          </button>
+
+          {/* PR Pulse Tab */}
+          <button
+            onClick={() => setActiveTab('pr-pulse')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${activeTab === 'pr-pulse'
+              ? 'bg-accent/15 text-accent'
+              : 'text-text-muted hover:text-text-primary hover:bg-hover'
+              }`}
+          >
+            <AlertTriangle className="w-3.5 h-3.5" />
+            <span>PR Pulse</span>
             <span className="text-[10px] px-1.5 py-0.5 bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white rounded-full font-semibold">
               NEW
             </span>
@@ -254,6 +267,13 @@ export const RightPanel = () => {
       {activeTab === 'processes' && (
         <div className="flex-1 flex flex-col overflow-hidden">
           <ProcessesPanel />
+        </div>
+      )}
+
+      {/* PR Pulse Tab */}
+      {activeTab === 'pr-pulse' && (
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <PRPulsePanel />
         </div>
       )}
 
@@ -336,7 +356,7 @@ export const RightPanel = () => {
                       <div>
                         <div className="flex items-center gap-2 mb-3">
                           <Sparkles className="w-4 h-4 text-accent" />
-                          <span className="text-xs font-medium text-text-muted uppercase tracking-wide">Nexus AI</span>
+                          <span className="text-xs font-medium text-text-muted uppercase tracking-wide">Cortex AI</span>
                           {isChatLoading && message === chatMessages[chatMessages.length - 1] && (
                             <Loader2 className="w-3 h-3 animate-spin text-accent" />
                           )}

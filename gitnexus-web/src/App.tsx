@@ -9,6 +9,7 @@ import { SettingsPanel } from './components/SettingsPanel';
 import { StatusBar } from './components/StatusBar';
 import { FileTreePanel } from './components/FileTreePanel';
 import { CodeReferencesPanel } from './components/CodeReferencesPanel';
+import { HelpModal } from './components/HelpModal';
 import { FileEntry } from './services/zip';
 import { getActiveProviderConfig } from './core/llm/settings-service';
 import { createKnowledgeGraph } from './core/graph/graph';
@@ -28,6 +29,8 @@ const AppContent = () => {
     runPipelineFromFiles,
     isSettingsPanelOpen,
     setSettingsPanelOpen,
+    isHelpModalOpen,
+    setHelpModalOpen,
     refreshLLMSettings,
     initializeAgent,
     startEmbeddings,
@@ -85,7 +88,7 @@ const AppContent = () => {
       setTimeout(() => {
         setViewMode('onboarding');
         setProgress(null);
-      }, 3000);
+      }, 8000);
     }
   }, [setViewMode, setGraph, setFileContents, setProgress, setProjectName, runPipeline, startEmbeddings, initializeAgent]);
 
@@ -128,7 +131,7 @@ const AppContent = () => {
       setTimeout(() => {
         setViewMode('onboarding');
         setProgress(null);
-      }, 3000);
+      }, 8000);
     }
   }, [setViewMode, setGraph, setFileContents, setProgress, setProjectName, runPipelineFromFiles, startEmbeddings, initializeAgent]);
 
@@ -224,7 +227,7 @@ const AppContent = () => {
       setTimeout(() => {
         setViewMode('onboarding');
         setProgress(null);
-      }, 3000);
+      }, 8000);
     });
   }, [handleServerConnect, setProgress, setViewMode, setServerBaseUrl, setAvailableRepos]);
 
@@ -298,6 +301,12 @@ const AppContent = () => {
         isOpen={isSettingsPanelOpen}
         onClose={() => setSettingsPanelOpen(false)}
         onSettingsSaved={handleSettingsSaved}
+      />
+
+      {/* Help Modal */}
+      <HelpModal
+        isOpen={isHelpModalOpen}
+        onClose={() => setHelpModalOpen(false)}
       />
 
     </div>

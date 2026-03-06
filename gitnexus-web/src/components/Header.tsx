@@ -1,9 +1,10 @@
-import { Search, Settings, HelpCircle, Sparkles, Github, Star, ChevronDown } from 'lucide-react';
+import { Search, Settings, HelpCircle, Sparkles, Github, Star, ChevronDown, Activity, FileText } from 'lucide-react';
 import { useAppState } from '../hooks/useAppState';
 import type { RepoSummary } from '../services/server-connection';
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { GraphNode } from '../core/graph/types';
 import { EmbeddingStatus } from './EmbeddingStatus';
+import { generateCodeHealthReport } from '../lib/pdf-generator';
 
 // Color mapping for node types in search results
 const NODE_TYPE_COLORS: Record<string, string> = {
@@ -31,7 +32,10 @@ export const Header = ({ onFocusNode, availableRepos = [], onSwitchRepo }: Heade
     openChatPanel,
     isRightPanelOpen,
     rightPanelTab,
+    isHeatmapMode,
+    setHeatmapMode,
     setSettingsPanelOpen,
+    setHelpModalOpen,
   } = useAppState();
   const [isRepoDropdownOpen, setIsRepoDropdownOpen] = useState(false);
   const repoDropdownRef = useRef<HTMLDivElement>(null);
@@ -121,7 +125,7 @@ export const Header = ({ onFocusNode, availableRepos = [], onSwitchRepo }: Heade
           <div className="w-7 h-7 flex items-center justify-center bg-gradient-to-br from-accent to-node-interface rounded-md shadow-glow text-white text-sm font-bold">
             ◇
           </div>
-          <span className="font-semibold text-[15px] tracking-tight">GitNexus</span>
+          <span className="font-semibold text-[15px] tracking-tight">CodeCortex</span>
         </div>
 
         {/* Project badge / Repo selector dropdown */}
@@ -236,18 +240,7 @@ export const Header = ({ onFocusNode, availableRepos = [], onSwitchRepo }: Heade
 
       {/* Right section */}
       <div className="flex items-center gap-2">
-        {/* GitHub Star Button */}
-        <a
-          href="https://github.com/abhigyanpatwari/GitNexus"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-2 px-3.5 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 rounded-lg text-white text-sm font-medium shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 group"
-        >
-          <Github className="w-4 h-4" />
-          <span className="hidden sm:inline">Star if cool</span>
-          <Star className="w-3.5 h-3.5 group-hover:fill-yellow-300 group-hover:text-yellow-300 transition-all" />
-          <span className="hidden sm:inline">✨</span>
-        </a>
+
 
         {/* Stats */}
         {graph && (
@@ -255,6 +248,26 @@ export const Header = ({ onFocusNode, availableRepos = [], onSwitchRepo }: Heade
             <span>{nodeCount} nodes</span>
             <span>{edgeCount} edges</span>
           </div>
+        )}
+
+        {/* Health Heatmap Toggle */}
+        <button
+          onClick={() => setHeatmapMode(!isHeatmapMode)}
+          className={`w-9 h-9 flex items-center justify-center rounded-md transition-colors ${isHeatmapMode ? 'bg-orange-500/20 text-orange-500 shadow-glow' : 'text-text-secondary hover:bg-hover hover:text-text-primary'}`}
+          title="Toggle Architecture Heatmap (High Traffic & Complexity)"
+        >
+          <Activity className="w-[18px] h-[18px]" />
+        </button>
+
+        {/* Generate PDF Report */}
+        {graph && (
+          <button
+            onClick={() => generateCodeHealthReport(graph, projectName)}
+            className="w-9 h-9 flex items-center justify-center rounded-md transition-colors text-text-secondary hover:bg-emerald-500/20 hover:text-emerald-400"
+            title="Generate Code Health PDF Report"
+          >
+            <FileText className="w-[18px] h-[18px]" />
+          </button>
         )}
 
         {/* Embedding Status */}
@@ -268,7 +281,11 @@ export const Header = ({ onFocusNode, availableRepos = [], onSwitchRepo }: Heade
         >
           <Settings className="w-[18px] h-[18px]" />
         </button>
-        <button className="w-9 h-9 flex items-center justify-center rounded-md text-text-secondary hover:bg-hover hover:text-text-primary transition-colors">
+        <button
+          onClick={() => setHelpModalOpen(true)}
+          className="w-9 h-9 flex items-center justify-center rounded-md text-text-secondary hover:bg-hover hover:text-text-primary transition-colors"
+          title="How to Use CodeCortex"
+        >
           <HelpCircle className="w-[18px] h-[18px]" />
         </button>
 
@@ -284,7 +301,7 @@ export const Header = ({ onFocusNode, availableRepos = [], onSwitchRepo }: Heade
           `}
         >
           <Sparkles className="w-4 h-4" />
-          <span>Nexus AI</span>
+          <span>Cortex AI</span>
         </button>
       </div>
     </header>

@@ -39,15 +39,21 @@ export type NodeProperties = {
   entryPointId?: string,
   terminalId?: string,
   // Entry point scoring (computed by process detection)
-  entryPointScore?: number,
   entryPointReason?: string,
+  // Architecture Intelligence
+  complexityScore?: number,
+  hotspotScore?: number,
+  inDegree?: number,
+  outDegree?: number,
+  community?: number | string, // Louvain community ID
+  [key: string]: any,
 }
 
-export type RelationshipType = 
-  | 'CONTAINS' 
-  | 'CALLS' 
-  | 'INHERITS' 
-  | 'OVERRIDES' 
+export type RelationshipType =
+  | 'CONTAINS'
+  | 'CALLS'
+  | 'INHERITS'
+  | 'OVERRIDES'
   | 'IMPORTS'
   | 'USES'
   | 'DEFINES'
@@ -58,9 +64,9 @@ export type RelationshipType =
   | 'STEP_IN_PROCESS'
 
 export interface GraphNode {
-  id:  string,
+  id: string,
   label: NodeLabel,
-  properties: NodeProperties,  
+  properties: NodeProperties,
 }
 
 export interface GraphRelationship {

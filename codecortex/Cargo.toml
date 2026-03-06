@@ -1,0 +1,48 @@
+[package]
+name = "codecortex"
+version = "0.1.0"
+edition = "2021"
+authors = ["CodeCortex Team"]
+description = "A cloud-native, semantic codebase indexer and Model Context Protocol Server."
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Graph Engine
+petgraph = "0.6.4"
+
+# Error Handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# SCIP Parser Support
+protobuf = "3.2"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+# Async Runtime (Native Only)
+tokio = { version = "1.37", features = ["full", "rt-multi-thread"] }
+
+# Logging & Telemetry
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# CLI & File System
+clap = { version = "4.5", features = ["derive"] }
+notify = "6.1.1" # File watching for incremental sync
+
+mcp-sdk-rs = "0.3.4"
+futures = "0.3.32"
+async-trait = "0.1.89"
+axum = "0.8.8"
+tower-http = { version = "0.6.8", features = ["cors"] }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = "0.2.114"
+serde-wasm-bindgen = "0.6.5"
+js-sys = "0.3.91"
+web-sys = "0.3.91"

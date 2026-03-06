@@ -8,6 +8,7 @@ import { processCommunities } from './community-processor.js';
 import { processProcesses } from './process-processor.js';
 import { createSymbolTable } from './symbol-table.js';
 import { createASTCache } from './ast-cache.js';
+import { processHotspots } from './hotspot-processor.js';
 import { PipelineProgress, PipelineResult } from '../../types/pipeline.js';
 import { walkRepositoryPaths, readFileContents } from './filesystem-walker.js';
 import { getLanguageFromFilename } from './utils.js';
@@ -247,7 +248,15 @@ export const runPipelineFromRepo = async (
       console.log(`📊 Pipeline: graph has ${importsCount} IMPORTS, ${graph.relationshipCount} total relationships`);
     }
 
-    // ── Phase 5: Communities ───────────────────────────────────────────
+    // ── Phase 4.5: Hotspots & Architecture Intelligence ──────────────
+    onProgress({
+      phase: 'processes', // Reuse processes phase for now or add new one
+      percent: 81,
+      message: 'Calculating architecture hotspots...',
+      stats: { filesProcessed: totalFiles, totalFiles, nodesCreated: graph.nodeCount },
+    });
+
+    processHotspots(graph);
     onProgress({
       phase: 'communities',
       percent: 82,

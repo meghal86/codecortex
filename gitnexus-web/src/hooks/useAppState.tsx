@@ -57,6 +57,10 @@ interface AppState {
   viewMode: ViewMode;
   setViewMode: (mode: ViewMode) => void;
 
+  // Help modal state
+  isHelpModalOpen: boolean;
+  setHelpModalOpen: (open: boolean) => void;
+
   // Graph data
   graph: KnowledgeGraph | null;
   setGraph: (graph: KnowledgeGraph | null) => void;
@@ -92,6 +96,9 @@ interface AppState {
   aiCitationHighlightedNodeIds: Set<string>;
   aiToolHighlightedNodeIds: Set<string>;
   blastRadiusNodeIds: Set<string>;
+  setBlastRadiusNodeIds: (ids: Set<string>) => void;
+  isolateBlastRadius: boolean;
+  setIsolateBlastRadius: (enabled: boolean) => void;
   isAIHighlightsEnabled: boolean;
   toggleAIHighlights: () => void;
   clearAIToolHighlights: () => void;
@@ -147,6 +154,10 @@ interface AppState {
   isAgentReady: boolean;
   isAgentInitializing: boolean;
   agentError: string | null;
+  isCommunityMode: boolean;
+  setCommunityMode: (enabled: boolean) => void;
+  isHeatmapMode: boolean;
+  setHeatmapMode: (enabled: boolean) => void;
 
   // Chat state
   chatMessages: ChatMessage[];
@@ -207,6 +218,9 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
   // Depth filter
   const [depthFilter, setDepthFilter] = useState<number | null>(null);
 
+  // Help Modal State
+  const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
+
   // Query state
   const [highlightedNodeIds, setHighlightedNodeIds] = useState<Set<string>>(new Set());
   const [queryResult, setQueryResult] = useState<QueryResult | null>(null);
@@ -215,6 +229,7 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
   const [aiCitationHighlightedNodeIds, setAICitationHighlightedNodeIds] = useState<Set<string>>(new Set());
   const [aiToolHighlightedNodeIds, setAIToolHighlightedNodeIds] = useState<Set<string>>(new Set());
   const [blastRadiusNodeIds, setBlastRadiusNodeIds] = useState<Set<string>>(new Set());
+  const [isolateBlastRadius, setIsolateBlastRadius] = useState(false);
   const [isAIHighlightsEnabled, setAIHighlightsEnabled] = useState(true);
 
   const toggleAIHighlights = useCallback(() => {
@@ -227,6 +242,7 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
 
   const clearBlastRadius = useCallback(() => {
     setBlastRadiusNodeIds(new Set());
+    setIsolateBlastRadius(false);
   }, []);
 
   const clearQueryHighlights = useCallback(() => {
@@ -293,6 +309,8 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
   const [isAgentReady, setIsAgentReady] = useState(false);
   const [isAgentInitializing, setIsAgentInitializing] = useState(false);
   const [agentError, setAgentError] = useState<string | null>(null);
+  const [isCommunityMode, setCommunityMode] = useState(false);
+  const [isHeatmapMode, setHeatmapMode] = useState(false);
 
   // Chat state
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
@@ -304,7 +322,7 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
   const [isCodePanelOpen, setCodePanelOpen] = useState(false);
   const [codeReferenceFocus, setCodeReferenceFocus] = useState<CodeReferenceFocus | null>(null);
 
-    const normalizePath = useCallback((p: string) => {
+  const normalizePath = useCallback((p: string) => {
     return p.replace(/\\/g, '/').replace(/^\.?\//, '');
   }, []);
 
@@ -410,7 +428,7 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
       }
       return kept;
     });
-  }, [queryResult, selectedNode]);
+  }, [selectedNode]);
 
   // Auto-add a code reference when the user selects a node in the graph/tree
   useEffect(() => {
@@ -1106,6 +1124,8 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
     setRightPanelTab,
     openCodePanel,
     openChatPanel,
+    isHelpModalOpen,
+    setHelpModalOpen: setIsHelpModalOpen,
     visibleLabels,
     toggleLabelVisibility,
     visibleEdgeTypes,
@@ -1117,6 +1137,9 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
     aiCitationHighlightedNodeIds,
     aiToolHighlightedNodeIds,
     blastRadiusNodeIds,
+    setBlastRadiusNodeIds,
+    isolateBlastRadius,
+    setIsolateBlastRadius,
     isAIHighlightsEnabled,
     toggleAIHighlights,
     clearAIToolHighlights,
@@ -1132,6 +1155,10 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
     setProgress,
     projectName,
     setProjectName,
+    isCommunityMode,
+    setCommunityMode,
+    isHeatmapMode,
+    setHeatmapMode,
     // Multi-repo switching
     serverBaseUrl,
     setServerBaseUrl,

@@ -2,7 +2,7 @@ import { NodeLabel } from '../core/graph/types';
 
 // Node colors by type - slightly muted for less visual noise
 export const NODE_COLORS: Record<NodeLabel, string> = {
-  Project: '#a855f7',    // Purple - prominent
+  Project: '#08b6ce',    // Cyan - prominent
   Package: '#8b5cf6',    // Violet
   Module: '#7c3aed',     // Violet darker
   Folder: '#6366f1',     // Indigo
@@ -117,7 +117,7 @@ export const EDGE_INFO: Record<EdgeType, { color: string; label: string }> = {
   CONTAINS: { color: '#2d5a3d', label: 'Contains' },
   DEFINES: { color: '#0e7490', label: 'Defines' },
   IMPORTS: { color: '#1d4ed8', label: 'Imports' },
-  CALLS: { color: '#7c3aed', label: 'Calls' },
+  CALLS: { color: '#08b6ce', label: 'Calls' },
   EXTENDS: { color: '#c2410c', label: 'Extends' },
   IMPLEMENTS: { color: '#be185d', label: 'Implements' },
 };

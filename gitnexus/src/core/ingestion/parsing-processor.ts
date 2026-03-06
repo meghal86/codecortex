@@ -74,8 +74,8 @@ export const isNodeExported = (node: any, name: string, language: string): boole
       while (current) {
         const type = current.type;
         if (type === 'export_statement' ||
-            type === 'export_specifier' ||
-            type === 'lexical_declaration' && current.parent?.type === 'export_statement') {
+          type === 'export_specifier' ||
+          type === 'lexical_declaration' && current.parent?.type === 'export_statement') {
           return true;
         }
         // Also check if text starts with 'export '
@@ -180,9 +180,9 @@ export const isNodeExported = (node: any, name: string, language: string): boole
     case 'php':
       while (current) {
         if (current.type === 'class_declaration' ||
-            current.type === 'interface_declaration' ||
-            current.type === 'trait_declaration' ||
-            current.type === 'enum_declaration') {
+          current.type === 'interface_declaration' ||
+          current.type === 'trait_declaration' ||
+          current.type === 'enum_declaration') {
           return true;
         }
         if (current.type === 'visibility_modifier') {
@@ -369,8 +369,17 @@ const processParsingSequential = async (
       const definitionNodeForRange = getDefinitionNodeFromCaptures(captureMap);
       const startLine = definitionNodeForRange ? definitionNodeForRange.startPosition.row : (nameNode ? nameNode.startPosition.row : 0);
       const nodeId = generateId(nodeLabel, `${file.path}:${nodeName}:${startLine}`);
-
       const definitionNode = getDefinitionNodeFromCaptures(captureMap);
+
+      // Calculate complexity
+      let complexityScore = 1; // Base score
+      if (definitionNode) {
+        const lineCount = definitionNode.endPosition.row - definitionNode.startPosition.row + 1;
+        complexityScore += Math.min(20, Math.floor(lineCount / 10));
+        const text = definitionNode.text || '';
+        const branches = (text.match(/\b(if|while|for|catch|case|match|switch|\?\.)\b/g) || []).length;
+        complexityScore += branches;
+      }
       const frameworkHint = definitionNode
         ? detectFrameworkFromAST(language, (definitionNode.text || '').slice(0, 300))
         : null;
@@ -389,6 +398,7 @@ const processParsingSequential = async (
             astFrameworkMultiplier: frameworkHint.entryPointMultiplier,
             astFrameworkReason: frameworkHint.reason,
           } : {}),
+          complexityScore,
         },
       };
 
