@@ -5,9 +5,11 @@
  */
 
 import { useEffect, useRef, useCallback, useState } from 'react';
-import { X, GitBranch, Copy, Focus, Layers, ZoomIn, ZoomOut } from 'lucide-react';
+import { X, GitBranch, Copy, Focus, Layers, ZoomIn, ZoomOut, Target, Sparkles, AlertCircle, Loader2 } from 'lucide-react';
 import mermaid from 'mermaid';
 import { ProcessData, generateProcessMermaid } from '../lib/mermaid-generator';
+import { createChatModel, getActiveProviderConfig } from '../core/llm';
+import { SystemMessage, HumanMessage } from '@langchain/core/messages';
 
 interface ProcessFlowModalProps {
     process: ProcessData | null;
@@ -65,6 +67,13 @@ export const ProcessFlowModal = ({ process, onClose, onFocusInGraph, isFullScree
     const [pan, setPan] = useState({ x: 0, y: 0 });
     const [isPanning, setIsPanning] = useState(false);
     const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [computedDescription, setComputedDescription] = useState<string | null>(null);
+
+    // Reset when process changes
+    useEffect(() => {
+        setComputedDescription(null);
+    }, [process]);
 
     // Reset zoom when switching between full screen and regular mode
     useEffect(() => {
@@ -193,6 +202,39 @@ export const ProcessFlowModal = ({ process, onClose, onFocusInGraph, isFullScree
         await navigator.clipboard.writeText(mermaidCode);
     }, [process]);
 
+    // Generate AI Summary
+    const handleGenerateSummary = async () => {
+        if (!process) return;
+
+        const config = getActiveProviderConfig();
+        if (!config || !config.apiKey) {
+            alert('Please configure an AI provider in Settings first.');
+            return;
+        }
+
+        try {
+            setIsGenerating(true);
+            const model = createChatModel(config);
+            const prompt = `You are an expert software architect. Briefly summarize this execution flow in 2-3 short sentences. Focus on the business value, what the flow accomplishes, and its core responsibility.\n\nProcess Name: ${process.label}\nSteps:\n${[...process.steps].sort((a, b) => a.stepNumber - b.stepNumber).map(s => `${s.stepNumber}. ${s.name} (${s.filePath?.split('/').pop() || 'unknown'})`).join('\n')}`;
+
+            const response = await model.invoke([
+                new SystemMessage("You are a concise, technical AI. Do not use filler words. Be extremely precise and output 2-3 sentences max."),
+                new HumanMessage(prompt)
+            ]);
+
+            if (typeof response.content === 'string') {
+                setComputedDescription(response.content);
+            } else {
+                setComputedDescription(JSON.stringify(response.content));
+            }
+        } catch (error) {
+            console.error('Error generating summary:', error);
+            alert('Failed to generate summary check console.');
+        } finally {
+            setIsGenerating(false);
+        }
+    };
+
     // Focus in graph
     const handleFocusInGraph = useCallback(() => {
         if (!process || !onFocusInGraph) return;
@@ -224,23 +266,113 @@ export const ProcessFlowModal = ({ process, onClose, onFocusInGraph, isFullScree
                     </h2>
                 </div>
 
-                {/* Diagram */}
-                <div
-                    ref={scrollContainerRef}
-                    className={`flex-1 p-8 flex items-center justify-center relative z-10 overflow-hidden ${isFullScreen ? 'min-h-[70vh]' : 'min-h-[400px]'}`}
-                    onMouseDown={handleMouseDown}
-                    onMouseMove={handleMouseMove}
-                    onMouseUp={handleMouseUp}
-                    onMouseLeave={handleMouseUp}
-                    style={{ cursor: isPanning ? 'grabbing' : 'grab' }}
-                >
+                {/* Main Content Area: Diagram + Sidebar */}
+                <div className="flex flex-1 overflow-hidden relative z-10 w-full h-full">
+
+                    {/* Diagram */}
                     <div
-                        ref={diagramRef}
-                        className="[&_.edgePath_.path]:stroke-slate-400 [&_.edgePath_.path]:stroke-2 [&_.marker]:fill-slate-400 transition-transform origin-center w-fit h-fit"
-                        style={{
-                            transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-                        }}
-                    />
+                        ref={scrollContainerRef}
+                        className={`flex-1 p-8 flex items-center justify-center relative overflow-hidden ${isFullScreen ? 'min-h-[70vh]' : 'min-h-[400px]'}`}
+                        onMouseDown={handleMouseDown}
+                        onMouseMove={handleMouseMove}
+                        onMouseUp={handleMouseUp}
+                        onMouseLeave={handleMouseUp}
+                        style={{ cursor: isPanning ? 'grabbing' : 'grab' }}
+                    >
+                        <div
+                            ref={diagramRef}
+                            className="[&_.edgePath_.path]:stroke-slate-400 [&_.edgePath_.path]:stroke-2 [&_.marker]:fill-slate-400 transition-transform origin-center w-fit h-fit"
+                            style={{
+                                transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+                            }}
+                        />
+                    </div>
+
+                    {/* Chronological Steps Sidebar */}
+                    <div className="w-80 border-l border-white/10 bg-slate-900/40 flex flex-col flex-shrink-0">
+                        <div className="p-4 border-b border-white/10 flex items-center gap-2">
+                            <Layers className="w-4 h-4 text-cyan-400" />
+                            <h3 className="text-sm font-semibold text-white">Execution Steps</h3>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                            {/* AI Description Stub */}
+                            {process.description || computedDescription ? (
+                                <div className="p-3 bg-cyan-950/30 border border-cyan-500/20 rounded-lg">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <Sparkles className="w-4 h-4 text-cyan-400" />
+                                        <span className="text-xs font-semibold text-cyan-300">AI Summary</span>
+                                    </div>
+                                    <p className="text-xs text-slate-300 leading-relaxed">
+                                        {process.description || computedDescription}
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="p-3 bg-slate-800/50 border border-slate-700/50 rounded-lg flex flex-col items-start gap-3">
+                                    <div className="flex items-center gap-2">
+                                        <AlertCircle className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                                        <p className="text-xs text-slate-400 leading-relaxed">
+                                            AI Summary not generated for this process flow.
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={handleGenerateSummary}
+                                        disabled={isGenerating}
+                                        className="w-full flex items-center justify-center gap-2 px-3 py-1.5 text-xs font-medium text-cyan-400 bg-cyan-950/30 hover:bg-cyan-900/40 border border-cyan-800/50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {isGenerating ? (
+                                            <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Generating...</>
+                                        ) : (
+                                            <><Sparkles className="w-3.5 h-3.5" /> Generate Summary</>
+                                        )}
+                                    </button>
+                                </div>
+                            )}
+
+                            <div className="space-y-2 relative before:absolute before:inset-y-0 before:left-3.5 before:w-0.5 before:bg-slate-700/50 pt-2">
+                                {[...process.steps].sort((a, b) => a.stepNumber - b.stepNumber).map((step, idx, arr) => {
+                                    const isFirst = idx === 0;
+                                    const isLast = idx === arr.length - 1;
+
+                                    return (
+                                        <div key={step.id} className="relative pl-10 pr-2 py-1 group">
+                                            {/* Step point indicator */}
+                                            <div className={`absolute left-2.5 top-2.5 w-2.5 h-2.5 rounded-full border-2 ${isFirst ? 'bg-emerald-500 border-emerald-900' :
+                                                isLast ? 'bg-pink-500 border-pink-900' :
+                                                    'bg-cyan-500 border-cyan-900'
+                                                } z-10 shadow-[0_0_8px_rgba(34,211,238,0.5)]`} />
+
+                                            <div className="bg-slate-800/40 hover:bg-slate-800 border border-transparent hover:border-slate-600 p-2.5 rounded-lg transition-colors cursor-pointer"
+                                                onClick={() => {
+                                                    if (onFocusInGraph) {
+                                                        onFocusInGraph([step.id], process.id);
+                                                        onClose();
+                                                    }
+                                                }}
+                                            >
+                                                <div className="flex items-start justify-between gap-2">
+                                                    <span className="text-xs font-medium text-slate-200 truncate flex-1" title={step.name}>
+                                                        {step.name}
+                                                    </span>
+                                                    <Target className="w-3.5 h-3.5 text-slate-500 group-hover:text-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                </div>
+                                                {step.filePath && (
+                                                    <div className="text-[10px] text-slate-500 truncate mt-1" title={step.filePath}>
+                                                        {step.filePath.split('/').pop()}
+                                                    </div>
+                                                )}
+                                                {step.cluster && (
+                                                    <div className="mt-1.5 inline-block px-1.5 py-0.5 bg-slate-900 rounded text-[9px] text-slate-400 font-medium">
+                                                        {step.cluster}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Footer Actions */}

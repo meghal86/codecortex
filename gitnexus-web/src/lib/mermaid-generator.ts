@@ -26,6 +26,7 @@ export interface ProcessData {
   steps: ProcessStep[];
   edges?: ProcessEdge[];  // CALLS edges between steps for branching
   clusters?: string[];
+  description?: string;
 }
 
 /**
@@ -33,7 +34,7 @@ export interface ProcessData {
  */
 export function generateProcessMermaid(process: ProcessData): string {
   const { steps, edges, clusters } = process;
-  
+
   if (!steps || steps.length === 0) {
     return 'graph TD\n  A[No steps found]';
   }
@@ -51,7 +52,7 @@ export function generateProcessMermaid(process: ProcessData): string {
   // Track clusters for subgraph grouping
   const clusterGroups = new Map<string, ProcessStep[]>();
   const noCluster: ProcessStep[] = [];
-  
+
   for (const step of steps) {
     if (step.cluster) {
       const group = clusterGroups.get(step.cluster) || [];
@@ -87,10 +88,10 @@ export function generateProcessMermaid(process: ProcessData): string {
   if (useClusters) {
     // Generate subgraphs for each cluster
     let clusterIndex = 0;
-    
+
     for (const [clusterName, clusterSteps] of clusterGroups) {
       lines.push(`  subgraph ${sanitizeLabel(clusterName)}["${sanitizeLabel(clusterName)}"]:::cluster`);
-      
+
       for (const step of clusterSteps) {
         const id = nodeId(step);
         const label = `${step.stepNumber}. ${sanitizeLabel(step.name)}`;
@@ -101,7 +102,7 @@ export function generateProcessMermaid(process: ProcessData): string {
       lines.push('  end');
       clusterIndex++;
     }
-    
+
     // Add unclustered steps
     for (const step of noCluster) {
       const id = nodeId(step);
@@ -150,7 +151,7 @@ export function generateProcessMermaid(process: ProcessData): string {
  */
 export function generateSimpleMermaid(processLabel: string, stepCount: number): string {
   const [entry, terminal] = processLabel.split(' → ').map(s => s.trim());
-  
+
   return `graph LR
   classDef entry fill:#059669,stroke:#34d399,stroke-width:2px,color:#ffffff,rx:10,ry:10;
   classDef terminal fill:#be185d,stroke:#f472b6,stroke-width:2px,color:#ffffff,rx:10,ry:10;
