@@ -26,7 +26,7 @@ export const TimelineScrubber: FC = () => {
     );
 
     return (
-        <div className="bg-void-dark/80 backdrop-blur-md border-t border-white/5 px-6 py-4 flex flex-col gap-3 relative z-40">
+        <div className="fixed bottom-0 left-0 right-0 bg-void-dark/90 backdrop-blur-xl border-t border-white/10 px-6 py-4 flex flex-col gap-3 z-50 shadow-2xl transition-all duration-300">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-primary">
                     <History size={18} className="animate-pulse" />

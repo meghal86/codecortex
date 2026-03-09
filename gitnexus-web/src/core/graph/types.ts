@@ -84,6 +84,7 @@ export interface GraphRelationship {
   /** Architectural violation flag and reason */
   violation?: boolean,
   violationReason?: string,
+  hidden?: boolean,
 }
 
 export interface KnowledgeGraph {

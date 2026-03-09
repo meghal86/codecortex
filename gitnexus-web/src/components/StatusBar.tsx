@@ -4,13 +4,14 @@ import { useAppState } from '../hooks/useAppState';
 export const StatusBar = () => {
   const { graph, progress } = useAppState();
 
-  const nodeCount = graph?.nodes.length ?? 0;
-  const edgeCount = graph?.relationships.length ?? 0;
+  const nodeCount = graph?.nodes.filter(n => !n.properties.hidden).length ?? 0;
+  const edgeCount = graph?.relationships.filter(r => !r.hidden).length ?? 0;
 
   // Detect primary language
   const primaryLanguage = (() => {
     if (!graph) return null;
     const languages = graph.nodes
+      .filter(n => !n.properties.hidden)
       .map(n => n.properties.language)
       .filter(Boolean);
     if (languages.length === 0) return null;

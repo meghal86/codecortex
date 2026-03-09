@@ -13,6 +13,7 @@ import type { AgentMessage } from '../core/llm/agent';
 import { DEFAULT_VISIBLE_EDGES, type EdgeType } from '../lib/constants';
 import type { RepoSummary, ConnectToServerResult } from '../services/server-connection';
 import { fetchRepos, connectToServer } from '../services/server-connection';
+import { getMockCommits } from '../core/ingestion/git-processor';
 
 export interface GitCommit {
   id: string;
@@ -1083,6 +1084,11 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
           console.warn('Embeddings auto-start failed:', err);
         }
       });
+
+      // Initialize Timeline
+      const mCommits = getMockCommits(pName);
+      setCommits(mCommits);
+      setSelectedCommitId(mCommits[mCommits.length - 1].id);
     } catch (err) {
       console.error('Repo switch failed:', err);
       setProgress({

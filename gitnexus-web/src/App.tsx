@@ -21,6 +21,7 @@ const AppContent = () => {
   const {
     viewMode,
     setViewMode,
+    graph,
     setGraph,
     setFileContents,
     setProgress,
@@ -46,6 +47,9 @@ const AppContent = () => {
     setAvailableRepos,
     switchRepo,
     setCommits,
+    setSelectedCommitId,
+    selectedCommitId,
+    commits,
     projectName,
   } = useAppState();
 
@@ -83,7 +87,9 @@ const AppContent = () => {
       });
 
       // Initialize Timeline
-      setCommits(getMockCommits(projectName));
+      const mCommits = getMockCommits(projectName);
+      setCommits(mCommits);
+      setSelectedCommitId(mCommits[mCommits.length - 1].id);
     } catch (error) {
       console.error('Pipeline error:', error);
       setProgress({
@@ -129,7 +135,9 @@ const AppContent = () => {
       });
 
       // Initialize Timeline
-      setCommits(getMockCommits(projectName));
+      const mCommits = getMockCommits(projectName);
+      setCommits(mCommits);
+      setSelectedCommitId(mCommits[mCommits.length - 1].id);
     } catch (error) {
       console.error('Pipeline error:', error);
       setProgress({
@@ -186,8 +194,10 @@ const AppContent = () => {
     });
 
     // Initialize Timeline
-    setCommits(getMockCommits(projectName));
-  }, [setViewMode, setGraph, setFileContents, setProjectName, initializeAgent, startEmbeddings, setCommits]);
+    const mCommits = getMockCommits(projectName);
+    setCommits(mCommits);
+    setSelectedCommitId(mCommits[mCommits.length - 1].id);
+  }, [setViewMode, setGraph, setFileContents, setProjectName, initializeAgent, startEmbeddings, setCommits, setSelectedCommitId]);
 
   // Auto-connect when ?server query param is present (bookmarkable shortcut)
   const autoConnectRan = useRef(false);
@@ -254,6 +264,46 @@ const AppContent = () => {
     refreshLLMSettings();
     initializeAgent();
   }, [refreshLLMSettings, initializeAgent]);
+  // --- PHASE 6: MOCK EVOLUTION DRIFT ---
+  useEffect(() => {
+    if (!graph || !selectedCommitId || !commits.length) return;
+
+    const selectedIndex = commits.findIndex(c => c.id === selectedCommitId);
+    if (selectedIndex === -1) return;
+
+    // Simulate "drift" by hiding nodes that were "added" after the selected commit
+    // (Simplified mock logic: nodes are hidden based on a stable index-based heuristic)
+    const updatedNodes = graph.nodes.map((node: any, idx: number) => {
+      // Hide ~20% of nodes for each commit back in time
+      const nodeCreationIndex = (idx * 13) % (commits.length + 1);
+      const isVisibleInSelectedCommit = nodeCreationIndex <= selectedIndex + 1;
+
+      return {
+        ...node,
+        properties: {
+          ...node.properties,
+          hidden: !isVisibleInSelectedCommit,
+        }
+      };
+    });
+
+    // Also hide edges connected to hidden nodes
+    const updatedRelationships = graph.relationships.map((rel: any) => {
+      const source = updatedNodes.find((n: any) => n.id === rel.sourceId);
+      const target = updatedNodes.find((n: any) => n.id === rel.targetId);
+      return {
+        ...rel,
+        hidden: source?.properties.hidden || target?.properties.hidden,
+      };
+    });
+
+    // We create a new graph object to trigger React/Sigma re-render
+    const newGraph = createKnowledgeGraph();
+    updatedNodes.forEach((n: any) => newGraph.addNode(n));
+    updatedRelationships.forEach((r: any) => newGraph.addRelationship(r));
+
+    setGraph(newGraph);
+  }, [selectedCommitId, commits, setGraph]);
 
   // Render based on view mode
   if (viewMode === 'onboarding') {

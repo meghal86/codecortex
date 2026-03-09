@@ -184,7 +184,7 @@ export const knowledgeGraphToGraphology = (
       filePath: node.properties.filePath,
       startLine: node.properties.startLine,
       endLine: node.properties.endLine,
-      hidden: false,
+      hidden: !!node.properties.hidden,
       mass: getNodeMass(node.label, nodeCount),
     });
   });
@@ -247,7 +247,7 @@ export const knowledgeGraphToGraphology = (
       filePath: node.properties.filePath,
       startLine: node.properties.startLine,
       endLine: node.properties.endLine,
-      hidden: false,
+      hidden: !!node.properties.hidden,
       mass: getNodeMass(node.label, nodeCount),
       community: communityIndex,
       communityColor: hasCommunity ? getCommunityColor(communityIndex!) : undefined,
@@ -320,6 +320,7 @@ export const knowledgeGraphToGraphology = (
           curvature: curvature,
           violation: rel.violation,
           violationReason: rel.violationReason,
+          hidden: !!rel.hidden,
         });
       }
     }
