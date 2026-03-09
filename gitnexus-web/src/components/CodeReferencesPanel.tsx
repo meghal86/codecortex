@@ -4,6 +4,8 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { useAppState } from '../hooks/useAppState';
 import { NODE_COLORS } from '../lib/constants';
+import { traceDataFlow } from '../core/analysis/taint-analysis';
+import { Share2, RotateCcw } from 'lucide-react';
 
 // Match the code theme used elsewhere in the app
 const customTheme = {
@@ -37,6 +39,11 @@ export const CodeReferencesPanel = ({ onFocusNode }: CodeReferencesPanelProps) =
     clearCodeReferences,
     setSelectedNode,
     codeReferenceFocus,
+    sendChatMessage,
+    setRightPanelOpen,
+    taintedNodeIds,
+    setTaintHighlights,
+    clearTaintHighlights,
   } = useAppState();
 
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -284,12 +291,60 @@ export const CodeReferencesPanel = ({ onFocusNode }: CodeReferencesPanelProps) =
                     else if (riskScore > 25) { riskColor = 'text-amber-400'; riskLabel = 'Moderate Risk'; }
 
                     return (
-                      <div className="flex items-center gap-2">
-                        <span className="text-text-muted font-semibold uppercase tracking-widest text-[10px]">Overall Risk</span>
-                        <div className="flex items-baseline gap-1.5">
-                          <span className={`text-lg font-black tracking-tight ${riskColor}`}>{riskScore}</span>
-                          <span className={`text-[10px] uppercase font-bold ${riskColor} opacity-80`}>{riskLabel}</span>
+                      <div className="flex items-center justify-between w-full">
+                        <div className="flex items-center gap-2">
+                          <span className="text-text-muted font-semibold uppercase tracking-widest text-[10px]">Overall Risk</span>
+                          <div className="flex items-baseline gap-1.5">
+                            <span className={`text-lg font-black tracking-tight ${riskColor}`}>{riskScore}</span>
+                            <span className={`text-[10px] uppercase font-bold ${riskColor} opacity-80`}>{riskLabel}</span>
+                          </div>
                         </div>
+
+                        {riskScore > 50 && (
+                          <div className="flex items-center gap-2">
+                            {taintedNodeIds.size > 0 ? (
+                              <button
+                                onClick={() => clearTaintHighlights()}
+                                className="flex items-center gap-1.5 px-2.5 py-1.5 bg-surface border border-border-subtle hover:bg-hover text-text-muted rounded-lg transition-all active:scale-95"
+                                title="Clear Trace"
+                              >
+                                <RotateCcw className="w-3.5 h-3.5" />
+                                <span className="text-[10px] font-bold uppercase tracking-tight">Clear Trace</span>
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => {
+                                  const result = traceDataFlow(graph!, selectedNode.id);
+                                  setTaintHighlights(result.pathNodeIds, result.pathEdgeIds);
+                                }}
+                                className="flex items-center gap-1.5 px-2.5 py-1.5 bg-surface border border-cyan-500/30 hover:bg-cyan-500/10 text-cyan-400 rounded-lg transition-all active:scale-95 group"
+                                title="Follow the data flow from this node"
+                              >
+                                <Share2 className="w-3.5 h-3.5 group-hover:rotate-12 transition-transform" />
+                                <span className="text-[10px] font-bold uppercase tracking-tight">Trace Flow</span>
+                              </button>
+                            )}
+
+                            <button
+                              onClick={async () => {
+                                setRightPanelOpen(true);
+                                await sendChatMessage(`Analyze the architectural hotspot in \`${selectedNode.properties.filePath || selectedNode.properties.name}\`.
+
+Metrics:
+- Complexity: ${complexity}
+- Hotspot Score: ${hotspot}
+- In-degree: ${selectedNode.properties.inDegree || 0}
+- Out-degree: ${selectedNode.properties.outDegree || 0}
+
+Please draft a detailed Refactoring Plan to reduce this risk. Consider file splitting, extracting business logic into services, and decoupling dependencies.`);
+                              }}
+                              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white rounded-lg shadow-lg shadow-indigo-500/20 transition-all active:scale-95 group"
+                            >
+                              <Sparkles className="w-3.5 h-3.5 group-hover:animate-pulse" />
+                              <span className="text-[10px] font-bold uppercase tracking-tight">Draft Refactor</span>
+                            </button>
+                          </div>
+                        )}
                       </div>
                     );
                   })()}

@@ -5,7 +5,7 @@ export const createKnowledgeGraph = (): KnowledgeGraph => {
   const relationshipMap = new Map<string, GraphRelationship>();
 
   const addNode = (node: GraphNode) => {
-    if(!nodeMap.has(node.id)) {
+    if (!nodeMap.has(node.id)) {
       nodeMap.set(node.id, node);
     }
   };
@@ -16,12 +16,17 @@ export const createKnowledgeGraph = (): KnowledgeGraph => {
     }
   };
 
-  return{
-    get nodes(){
+  const mergeGraph = (other: KnowledgeGraph) => {
+    other.nodes.forEach(addNode);
+    other.relationships.forEach(addRelationship);
+  };
+
+  return {
+    get nodes() {
       return Array.from(nodeMap.values())
     },
-  
-    get relationships(){
+
+    get relationships() {
       return Array.from(relationshipMap.values())
     },
 
@@ -36,6 +41,7 @@ export const createKnowledgeGraph = (): KnowledgeGraph => {
 
     addNode,
     addRelationship,
+    mergeGraph,
 
   };
 };

@@ -46,6 +46,7 @@ export type NodeProperties = {
   inDegree?: number,
   outDegree?: number,
   community?: number | string, // Louvain community ID
+  repoId?: string, // Identity of the repository this node belongs to
   [key: string]: any,
 }
 
@@ -80,6 +81,9 @@ export interface GraphRelationship {
   reason: string,
   /** Step number for STEP_IN_PROCESS relationships (1-indexed) */
   step?: number,
+  /** Architectural violation flag and reason */
+  violation?: boolean,
+  violationReason?: string,
 }
 
 export interface KnowledgeGraph {
@@ -89,4 +93,5 @@ export interface KnowledgeGraph {
   relationshipCount: number,
   addNode: (node: GraphNode) => void,
   addRelationship: (relationship: GraphRelationship) => void,
+  mergeGraph: (other: KnowledgeGraph) => void,
 }

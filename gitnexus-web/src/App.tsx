@@ -14,6 +14,8 @@ import { FileEntry } from './services/zip';
 import { getActiveProviderConfig } from './core/llm/settings-service';
 import { createKnowledgeGraph } from './core/graph/graph';
 import { connectToServer, fetchRepos, normalizeServerUrl, type ConnectToServerResult } from './services/server-connection';
+import { TimelineScrubber } from './components/TimelineScrubber';
+import { getMockCommits } from './core/ingestion/git-processor';
 
 const AppContent = () => {
   const {
@@ -43,6 +45,8 @@ const AppContent = () => {
     availableRepos,
     setAvailableRepos,
     switchRepo,
+    setCommits,
+    projectName,
   } = useAppState();
 
   const graphCanvasRef = useRef<GraphCanvasHandle>(null);
@@ -77,6 +81,9 @@ const AppContent = () => {
           console.warn('Embeddings auto-start failed:', err);
         }
       });
+
+      // Initialize Timeline
+      setCommits(getMockCommits(projectName));
     } catch (error) {
       console.error('Pipeline error:', error);
       setProgress({
@@ -120,6 +127,9 @@ const AppContent = () => {
           console.warn('Embeddings auto-start failed:', err);
         }
       });
+
+      // Initialize Timeline
+      setCommits(getMockCommits(projectName));
     } catch (error) {
       console.error('Pipeline error:', error);
       setProgress({
@@ -174,7 +184,10 @@ const AppContent = () => {
         console.warn('Embeddings auto-start failed:', err);
       }
     });
-  }, [setViewMode, setGraph, setFileContents, setProjectName, initializeAgent, startEmbeddings]);
+
+    // Initialize Timeline
+    setCommits(getMockCommits(projectName));
+  }, [setViewMode, setGraph, setFileContents, setProjectName, initializeAgent, startEmbeddings, setCommits]);
 
   // Auto-connect when ?server query param is present (bookmarkable shortcut)
   const autoConnectRan = useRef(false);
@@ -295,6 +308,9 @@ const AppContent = () => {
       </main>
 
       <StatusBar />
+
+      {/* Git Time-Machine Timeline Scrubber */}
+      {viewMode === 'exploring' && <TimelineScrubber />}
 
       {/* Settings Panel (modal) */}
       <SettingsPanel

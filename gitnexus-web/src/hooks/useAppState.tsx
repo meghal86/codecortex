@@ -14,6 +14,14 @@ import { DEFAULT_VISIBLE_EDGES, type EdgeType } from '../lib/constants';
 import type { RepoSummary, ConnectToServerResult } from '../services/server-connection';
 import { fetchRepos, connectToServer } from '../services/server-connection';
 
+export interface GitCommit {
+  id: string;
+  hash: string;
+  author: string;
+  date: string;
+  message: string;
+}
+
 export type ViewMode = 'onboarding' | 'loading' | 'exploring';
 export type RightPanelTab = 'code' | 'chat';
 export type EmbeddingStatus = 'idle' | 'loading' | 'embedding' | 'indexing' | 'ready' | 'error';
@@ -106,6 +114,11 @@ interface AppState {
   queryResult: QueryResult | null;
   setQueryResult: (result: QueryResult | null) => void;
   clearQueryHighlights: () => void;
+  // Taint Analysis
+  taintedNodeIds: Set<string>;
+  taintedEdgeIds: Set<string>;
+  setTaintHighlights: (nodeIds: Set<string>, edgeIds: Set<string>) => void;
+  clearTaintHighlights: () => void;
 
   // Node animations (for MCP tool visual feedback)
   animatedNodes: Map<string, NodeAnimation>;
@@ -126,6 +139,12 @@ interface AppState {
   availableRepos: RepoSummary[];
   setAvailableRepos: (repos: RepoSummary[]) => void;
   switchRepo: (repoName: string) => Promise<void>;
+
+  // Git Time-Machine
+  commits: GitCommit[];
+  setCommits: (commits: GitCommit[]) => void;
+  selectedCommitId: string | null;
+  setSelectedCommitId: (id: string | null) => void;
 
   // Worker API (shared across app)
   runPipeline: (file: File, onProgress: (p: PipelineProgress) => void, clusteringConfig?: ProviderConfig) => Promise<PipelineResult>;
@@ -250,6 +269,20 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
     setQueryResult(null);
   }, []);
 
+  // Taint Analysis
+  const [taintedNodeIds, setTaintedNodeIds] = useState<Set<string>>(new Set());
+  const [taintedEdgeIds, setTaintedEdgeIds] = useState<Set<string>>(new Set());
+
+  const setTaintHighlights = useCallback((nodeIds: Set<string>, edgeIds: Set<string>) => {
+    setTaintedNodeIds(nodeIds);
+    setTaintedEdgeIds(edgeIds);
+  }, []);
+
+  const clearTaintHighlights = useCallback(() => {
+    setTaintedNodeIds(new Set());
+    setTaintedEdgeIds(new Set());
+  }, []);
+
   // Node animations (for MCP tool visual feedback)
   const [animatedNodes, setAnimatedNodes] = useState<Map<string, NodeAnimation>>(new Map());
   const animationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -298,6 +331,10 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
   // Multi-repo switching
   const [serverBaseUrl, setServerBaseUrl] = useState<string | null>(null);
   const [availableRepos, setAvailableRepos] = useState<RepoSummary[]>([]);
+
+  // Git Time-Machine
+  const [commits, setCommits] = useState<GitCommit[]>([]);
+  const [selectedCommitId, setSelectedCommitId] = useState<string | null>(null);
 
   // Embedding state
   const [embeddingStatus, setEmbeddingStatus] = useState<EmbeddingStatus>('idle');
@@ -1165,6 +1202,16 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
     availableRepos,
     setAvailableRepos,
     switchRepo,
+    // Git Time-Machine
+    commits,
+    setCommits,
+    selectedCommitId,
+    setSelectedCommitId,
+    // Taint Analysis
+    taintedNodeIds,
+    taintedEdgeIds,
+    setTaintHighlights,
+    clearTaintHighlights,
     runPipeline,
     runPipelineFromFiles,
     runQuery,

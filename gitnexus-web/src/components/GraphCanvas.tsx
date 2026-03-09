@@ -29,6 +29,8 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle>((_, ref) => {
     animatedNodes,
     isHeatmapMode,
     isolateBlastRadius,
+    taintedNodeIds,
+    taintedEdgeIds,
   } = useAppState();
   const [hoveredNodeName, setHoveredNodeName] = useState<string | null>(null);
 
@@ -99,6 +101,8 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle>((_, ref) => {
     isolateBlastRadius,
     animatedNodes: effectiveAnimatedNodes,
     visibleEdgeTypes,
+    taintedNodeIds,
+    taintedEdgeIds,
   });
 
   // Expose focusNode to parent via ref

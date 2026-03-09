@@ -31,6 +31,8 @@ export interface SigmaEdgeAttributes {
   type?: string;
   curvature?: number;
   zIndex?: number;
+  violation?: boolean;
+  violationReason?: string;
 }
 
 /**
@@ -312,10 +314,12 @@ export const knowledgeGraphToGraphology = (
 
         graph.addEdge(rel.sourceId, rel.targetId, {
           size: edgeBaseSize * style.sizeMultiplier,
-          color: style.color,
+          color: rel.violation ? '#ef4444' : style.color,
           relationType: rel.type,
           type: 'curved',
           curvature: curvature,
+          violation: rel.violation,
+          violationReason: rel.violationReason,
         });
       }
     }

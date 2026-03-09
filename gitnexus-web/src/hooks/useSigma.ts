@@ -59,6 +59,8 @@ interface UseSigmaOptions {
   animatedNodes?: Map<string, NodeAnimation>;
   visibleEdgeTypes?: EdgeType[];
   showHeatmap?: boolean;
+  taintedNodeIds?: Set<string>;
+  taintedEdgeIds?: Set<string>;
 }
 
 interface UseSigmaReturn {
@@ -133,6 +135,8 @@ export const useSigma = (options: UseSigmaOptions = {}): UseSigmaReturn => {
   const selectedNodeRef = useRef<string | null>(null);
   const highlightedRef = useRef<Set<string>>(new Set());
   const blastRadiusRef = useRef<Set<string>>(new Set());
+  const taintedNodesRef = useRef<Set<string>>(new Set());
+  const taintedEdgesRef = useRef<Set<string>>(new Set());
   const animatedNodesRef = useRef<Map<string, NodeAnimation>>(new Map());
   const visibleEdgeTypesRef = useRef<EdgeType[] | null>(null);
   const layoutTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -143,6 +147,8 @@ export const useSigma = (options: UseSigmaOptions = {}): UseSigmaReturn => {
   useEffect(() => {
     highlightedRef.current = options.highlightedNodeIds || new Set();
     blastRadiusRef.current = options.blastRadiusNodeIds || new Set();
+    taintedNodesRef.current = options.taintedNodeIds || new Set();
+    taintedEdgesRef.current = options.taintedEdgeIds || new Set();
     animatedNodesRef.current = options.animatedNodes || new Map();
     visibleEdgeTypesRef.current = options.visibleEdgeTypes || null;
     sigmaRef.current?.refresh();
@@ -281,11 +287,15 @@ export const useSigma = (options: UseSigmaOptions = {}): UseSigmaReturn => {
         const currentSelected = selectedNodeRef.current;
         const highlighted = highlightedRef.current;
         const blastRadius = blastRadiusRef.current;
+        const taintedNodes = taintedNodesRef.current;
         const animatedNodes = animatedNodesRef.current;
         const hasHighlights = highlighted.size > 0;
         const hasBlastRadius = blastRadius.size > 0;
+        const hasTaint = taintedNodes.size > 0;
+
         const isQueryHighlighted = highlighted.has(node);
         const isBlastRadiusNode = blastRadius.has(node);
+        const isTaintedNode = taintedNodes.has(node);
 
         // Apply animation effects FIRST (before other highlighting)
         const animation = animatedNodes.get(node);
@@ -356,6 +366,21 @@ export const useSigma = (options: UseSigmaOptions = {}): UseSigmaReturn => {
             res.zIndex = 0;
             return res;
           }
+        }
+
+        // --- Taint Analysis Highlight ---
+        if (hasTaint) {
+          if (isTaintedNode) {
+            res.color = '#06b6d4'; // Cyan for data flow
+            res.size = (data.size || 8) * 1.8;
+            res.zIndex = 3;
+            res.highlighted = true;
+          } else {
+            res.color = dimColor(data.color, 0.15);
+            res.size = (data.size || 8) * 0.4;
+            res.zIndex = 0;
+          }
+          return res;
         }
 
         // Blast radius takes priority (red highlighting)
@@ -464,7 +489,17 @@ export const useSigma = (options: UseSigmaOptions = {}): UseSigmaReturn => {
         const currentSelected = selectedNodeRef.current;
         const highlighted = highlightedRef.current;
         const blastRadius = blastRadiusRef.current;
-        const hasHighlights = highlighted.size > 0 || blastRadius.size > 0; // Check BOTH sets
+        const taintedEdges = taintedEdgesRef.current;
+        const hasHighlights = highlighted.size > 0 || blastRadius.size > 0 || taintedEdges.size > 0;
+
+        // --- Architectural Violation Highlighting (Pulsing Red) ---
+        if (data.violation) {
+          const phase = (Math.sin(Date.now() / 200) + 1) / 2;
+          res.color = phase > 0.5 ? '#ef4444' : '#991b1b';
+          res.size = (data.size || 1) * 3;
+          res.zIndex = 4;
+          return res;
+        }
 
         if (hasHighlights && !currentSelected) {
           const graph = graphRef.current;
@@ -478,7 +513,7 @@ export const useSigma = (options: UseSigmaOptions = {}): UseSigmaReturn => {
             const bothHighlighted = isSourceActive && isTargetActive;
             const oneHighlighted = isSourceActive || isTargetActive;
 
-            if (bothHighlighted) {
+            if (bothHighlighted || taintedEdges.has(edge)) {
               // If both nodes are in blast radius, use red edge
               if (blastRadius.has(source) && blastRadius.has(target)) {
                 res.color = '#ef4444';
