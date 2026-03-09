@@ -395,6 +395,93 @@ export const filterGraphByDepth = (
   graph.forEachNode((nodeId, attributes) => {
     const isLabelVisible = visibleLabels.includes(attributes.nodeType);
     const isInRange = nodesInRange.has(nodeId);
-    graph.setNodeAttribute(nodeId, 'hidden', !isLabelVisible || !isInRange);
   });
+};
+
+/**
+ * Converts the KnowledgeGraph into a Domain-Driven Graph where each node is a Louvain Community (Domain).
+ * Edges represent aggregated cross-domain dependencies.
+ */
+export const knowledgeGraphToDomainGraphology = (
+  knowledgeGraph: KnowledgeGraph,
+  communityMemberships: Map<string, number>
+): Graph<SigmaNodeAttributes, SigmaEdgeAttributes> => {
+  const domainGraph = new Graph<SigmaNodeAttributes, SigmaEdgeAttributes>();
+
+  if (!communityMemberships || communityMemberships.size === 0) return domainGraph;
+
+  const communities = new Set(communityMemberships.values());
+  const communityCount = communities.size;
+
+  // 1. Create a Node for each Community (Domain)
+  const spreadRadius = Math.sqrt(communityCount) * 100;
+  const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+
+  const domainFileCounts = new Map<number, number>();
+
+  // Count files per domain to size the nodes
+  knowledgeGraph.nodes.forEach(node => {
+    const commId = communityMemberships.get(node.id);
+    if (commId !== undefined) {
+      domainFileCounts.set(commId, (domainFileCounts.get(commId) || 0) + 1);
+    }
+  });
+
+  let idx = 0;
+  communities.forEach(communityId => {
+    const angle = idx * goldenAngle;
+    const radius = spreadRadius * Math.sqrt((idx + 1) / communityCount);
+
+    const x = radius * Math.cos(angle);
+    const y = radius * Math.sin(angle);
+
+    // Size is proportional to the number of files in the domain
+    const fileCount = domainFileCounts.get(communityId) || 1;
+    const size = Math.max(10, Math.min(50, Math.sqrt(fileCount) * 4));
+
+    domainGraph.addNode(`domain_${communityId}`, {
+      x,
+      y,
+      size,
+      color: getCommunityColor(communityId),
+      label: `Domain ${communityId} (${fileCount} files)`,
+      nodeType: 'Community',
+      filePath: '',
+      mass: fileCount, // Larger domains push others away harder
+      community: communityId,
+    });
+    idx++;
+  });
+
+  // 2. Aggregate Edges between Communities
+  // Map of "sourceDomain_targetDomain" -> weight (number of file-level connections)
+  const domainEdges = new Map<string, number>();
+
+  knowledgeGraph.relationships.forEach(rel => {
+    const sourceComm = communityMemberships.get(rel.sourceId);
+    const targetComm = communityMemberships.get(rel.targetId);
+
+    // Only count cross-domain edges
+    if (sourceComm !== undefined && targetComm !== undefined && sourceComm !== targetComm) {
+      const edgeKey = `${sourceComm}_${targetComm}`;
+      domainEdges.set(edgeKey, (domainEdges.get(edgeKey) || 0) + 1);
+    }
+  });
+
+  // 3. Add Edges to Domain Graph
+  domainEdges.forEach((weight, edgeKey) => {
+    const [sourceComm, targetComm] = edgeKey.split('_');
+    // Thicker line for more connections
+    const edgeSize = Math.max(0.5, Math.min(5, Math.sqrt(weight) * 0.5));
+
+    domainGraph.addEdge(`domain_${sourceComm}`, `domain_${targetComm}`, {
+      size: edgeSize,
+      color: '#9ca3af', // Neutral grey for domain lines
+      relationType: 'CROSS_DOMAIN',
+      type: 'curved',
+      curvature: 0.1,
+    });
+  });
+
+  return domainGraph;
 };

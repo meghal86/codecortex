@@ -130,7 +130,7 @@ export const DropZone = ({ onFileSelect, onGitClone, onServerConnect }: DropZone
   };
 
   const handleServerConnect = async () => {
-    const urlToUse = serverUrl.trim() || window.location.origin;
+    const urlToUse = serverUrl.trim() || 'http://localhost:4747';
     if (!urlToUse) {
       setError('Please enter a server URL');
       return;

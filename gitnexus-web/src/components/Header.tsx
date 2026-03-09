@@ -1,4 +1,4 @@
-import { Search, Settings, HelpCircle, Sparkles, Github, Star, ChevronDown, Activity, FileText } from 'lucide-react';
+import { Search, Settings, HelpCircle, Sparkles, Github, Star, ChevronDown, Activity, FileText, Layers, Network } from 'lucide-react';
 import { useAppState } from '../hooks/useAppState';
 import type { RepoSummary } from '../services/server-connection';
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
@@ -34,8 +34,12 @@ export const Header = ({ onFocusNode, availableRepos = [], onSwitchRepo }: Heade
     rightPanelTab,
     isHeatmapMode,
     setHeatmapMode,
+    isDomainView,
+    setDomainView,
     setSettingsPanelOpen,
     setHelpModalOpen,
+    sendChatMessage,
+    setRightPanelOpen,
   } = useAppState();
   const [isRepoDropdownOpen, setIsRepoDropdownOpen] = useState(false);
   const repoDropdownRef = useRef<HTMLDivElement>(null);
@@ -248,6 +252,60 @@ export const Header = ({ onFocusNode, availableRepos = [], onSwitchRepo }: Heade
             <span>{nodeCount} nodes</span>
             <span>{edgeCount} edges</span>
           </div>
+        )}
+
+        {/* Domain View Toggle */}
+        <button
+          onClick={() => setDomainView(!isDomainView)}
+          className={`w-9 h-9 flex items-center justify-center rounded-md transition-colors ${isDomainView ? 'bg-indigo-500/20 text-indigo-400 shadow-glow' : 'text-text-secondary hover:bg-hover hover:text-text-primary'}`}
+          title="Toggle Domain Map (Aggregated Business Logic View)"
+        >
+          <Layers className="w-[18px] h-[18px]" />
+        </button>
+
+        {/* Generate System Architecture (Only available if graph exists) */}
+        {graph && (
+          <button
+            onClick={async () => {
+              // Open side panel
+              setRightPanelOpen(true);
+
+              // Find domains and their file counts
+              const domainMap = new Map<string, string[]>();
+
+              graph.nodes.forEach(n => {
+                if (n.label !== 'Community') {
+                  const commId = n.properties.community;
+                  if (commId !== undefined) {
+                    const commStr = String(commId);
+                    if (!domainMap.has(commStr)) domainMap.set(commStr, []);
+                    domainMap.get(commStr)!.push(n.properties.name);
+                  }
+                }
+              });
+
+              // Format string for LLM
+              let domainSummary = "Codebase Domains/Subsystems:\\n\\n";
+
+              Array.from(domainMap.entries()).slice(0, 15).forEach(([commId, files]) => {
+                domainSummary += `Domain ${commId}: ${files.length} files (e.g., ${files.slice(0, 5).join(', ')})\\n`;
+              });
+
+              await sendChatMessage(`Please generate an "Auto-Generated System Architecture Diagram" (C4 Context/Flowchart style) based on the current codebase domains.
+
+${domainSummary}
+
+Tasks:
+1. Infer semantic, high-level business names for these Domains based on the typical files inside them (e.g., Auth Service, Database Layer).
+2. Generate a comprehensive Mermaid.js \`graph TD\` or \`sequenceDiagram\` showing how these subsystems piece together the overall architecture of the application.
+3. Provide a brief 1-paragraph Executive Summary explaining how the system works at a macro level.`);
+            }}
+            className="flex items-center gap-1.5 px-3 h-9 bg-accent/10 border border-accent/20 hover:bg-accent/20 text-accent rounded-md transition-colors font-medium shadow-glow text-sm ml-1 mr-1"
+            title="Auto-Generate System Architecture Diagram via Cortex AI"
+          >
+            <Network className="w-4 h-4" />
+            <span className="hidden sm:inline">System Architecture</span>
+          </button>
         )}
 
         {/* Health Heatmap Toggle */}

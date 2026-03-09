@@ -61,6 +61,20 @@ export const StatusBar = () => {
                 <span>{primaryLanguage}</span>
               </>
             )}
+
+            <span className="text-border-default ml-2">|</span>
+            <button
+              onClick={() => {
+                // @ts-ignore - setInsightsDashboardOpen exists but TS might complain if types aren't fully synced
+                const { setInsightsDashboardOpen } = useAppState();
+                if (setInsightsDashboardOpen) setInsightsDashboardOpen(true);
+              }}
+              className="ml-2 flex items-center gap-1.5 px-2 py-0.5 rounded bg-accent/10 hover:bg-accent/20 text-accent transition-colors cursor-pointer"
+              title="View Code Story Executive Summary"
+            >
+              <Heart size={12} className="text-accent" />
+              <span className="font-medium">View Code Story</span>
+            </button>
           </>
         )}
       </div>

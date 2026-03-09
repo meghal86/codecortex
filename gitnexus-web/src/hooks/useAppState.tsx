@@ -168,9 +168,14 @@ interface AppState {
 
   // LLM/Agent state
   llmSettings: LLMSettings;
-  updateLLMSettings: (updates: Partial<LLMSettings>) => void;
+  updateLLMSettings: (updates: Partial<LLMSettings>) => void; // Settings & Insights
   isSettingsPanelOpen: boolean;
   setSettingsPanelOpen: (open: boolean) => void;
+  isInsightsDashboardOpen: boolean;
+  setInsightsDashboardOpen: (open: boolean) => void;
+  // Phase 7: Domain View
+  isDomainView: boolean;
+  setDomainView: (enabled: boolean) => void;
   isAgentReady: boolean;
   isAgentInitializing: boolean;
   agentError: string | null;
@@ -344,6 +349,8 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
   // LLM/Agent state
   const [llmSettings, setLLMSettings] = useState<LLMSettings>(loadSettings);
   const [isSettingsPanelOpen, setSettingsPanelOpen] = useState(false);
+  const [isInsightsDashboardOpen, setInsightsDashboardOpen] = useState(true); // Open by default when exploring
+  const [isDomainView, setDomainView] = useState(false);
   const [isAgentReady, setIsAgentReady] = useState(false);
   const [isAgentInitializing, setIsAgentInitializing] = useState(false);
   const [agentError, setAgentError] = useState<string | null>(null);
@@ -1236,6 +1243,10 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
     updateLLMSettings,
     isSettingsPanelOpen,
     setSettingsPanelOpen,
+    isInsightsDashboardOpen,
+    setInsightsDashboardOpen,
+    isDomainView,
+    setDomainView,
     isAgentReady,
     isAgentInitializing,
     agentError,

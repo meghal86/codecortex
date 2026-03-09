@@ -10,6 +10,7 @@ import { StatusBar } from './components/StatusBar';
 import { FileTreePanel } from './components/FileTreePanel';
 import { CodeReferencesPanel } from './components/CodeReferencesPanel';
 import { HelpModal } from './components/HelpModal';
+import { InsightsDashboard } from './components/InsightsDashboard';
 import { FileEntry } from './services/zip';
 import { getActiveProviderConfig } from './core/llm/settings-service';
 import { createKnowledgeGraph } from './core/graph/graph';
@@ -73,7 +74,11 @@ const AppContent = () => {
       // Initialize (or re-initialize) the agent AFTER a repo loads so it captures
       // the current codebase context (file contents + graph tools) in the worker.
       if (getActiveProviderConfig()) {
-        initializeAgent(projectName);
+        try {
+          initializeAgent(projectName);
+        } catch (e) {
+          console.warn('Failed to initialize agent:', e);
+        }
       }
 
       // Auto-start embeddings pipeline in background
@@ -123,7 +128,11 @@ const AppContent = () => {
       setViewMode('exploring');
 
       if (getActiveProviderConfig()) {
-        initializeAgent(projectName);
+        try {
+          initializeAgent(projectName);
+        } catch (e) {
+          console.warn('Failed to initialize agent:', e);
+        }
       }
 
       startEmbeddings().catch((err) => {
@@ -181,7 +190,11 @@ const AppContent = () => {
 
     // Initialize agent if LLM is configured
     if (getActiveProviderConfig()) {
-      initializeAgent(projectName);
+      try {
+        initializeAgent(projectName);
+      } catch (e) {
+        console.warn('Failed to initialize agent:', e);
+      }
     }
 
     // Auto-start embeddings
@@ -361,6 +374,9 @@ const AppContent = () => {
 
       {/* Git Time-Machine Timeline Scrubber */}
       {viewMode === 'exploring' && <TimelineScrubber />}
+
+      {/* Phase 7: Code Story Executive Dashboard */}
+      {viewMode === 'exploring' && <InsightsDashboard />}
 
       {/* Settings Panel (modal) */}
       <SettingsPanel

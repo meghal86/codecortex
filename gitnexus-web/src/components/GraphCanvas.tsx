@@ -2,7 +2,8 @@ import { useEffect, useCallback, useMemo, useState, forwardRef, useImperativeHan
 import { ZoomIn, ZoomOut, Maximize2, Focus, RotateCcw, Play, Pause, Lightbulb, LightbulbOff } from 'lucide-react';
 import { useSigma } from '../hooks/useSigma';
 import { useAppState } from '../hooks/useAppState';
-import { knowledgeGraphToGraphology, filterGraphByDepth, SigmaNodeAttributes, SigmaEdgeAttributes } from '../lib/graph-adapter';
+import { knowledgeGraphToGraphology, knowledgeGraphToDomainGraphology, filterGraphByDepth, SigmaNodeAttributes, SigmaEdgeAttributes } from '../lib/graph-adapter';
+import { GraphNode } from '../core/graph/types';
 import { QueryFAB } from './QueryFAB';
 import Graph from 'graphology';
 
@@ -31,6 +32,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle>((_, ref) => {
     isolateBlastRadius,
     taintedNodeIds,
     taintedEdgeIds,
+    isDomainView,
   } = useAppState();
   const [hoveredNodeName, setHoveredNodeName] = useState<string | null>(null);
 
@@ -57,6 +59,25 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle>((_, ref) => {
 
   const handleNodeClick = useCallback((nodeId: string) => {
     if (!graph) return;
+
+    // Check if it's a domain node
+    if (nodeId.startsWith('domain_')) {
+      const communityId = parseInt(nodeId.replace('domain_', ''), 10);
+      // Create a synthetic node for the domain so the property panel can render it
+      const domainNode: GraphNode = {
+        id: nodeId,
+        label: 'Community',
+        properties: {
+          name: `Domain ${communityId}`,
+          filePath: '',
+          community: communityId
+        }
+      };
+      setSelectedNode(domainNode);
+      openCodePanel();
+      return;
+    }
+
     const node = graph.nodes.find(n => n.id === nodeId);
     if (node) {
       setSelectedNode(node);
@@ -120,28 +141,31 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle>((_, ref) => {
     }
   }), [focusNode, graph, setSelectedNode, openCodePanel]);
 
-  // Update Sigma graph when KnowledgeGraph changes
+  // Update Sigma graph when KnowledgeGraph or view mode changes
   useEffect(() => {
     if (!graph) return;
 
     // Build communityMemberships map from MEMBER_OF relationships
-    // MEMBER_OF edges: nodeId -> communityId (stored as targetId)
+    // This is needed for coloring the File Map, and grouping the Domain Map
     const communityMemberships = new Map<string, number>();
-    graph.relationships.forEach(rel => {
-      if (rel.type === 'MEMBER_OF') {
-        // Find the community node to get its index
-        const communityNode = graph.nodes.find(n => n.id === rel.targetId && n.label === 'Community');
-        if (communityNode) {
-          // Extract community index from id (e.g., "comm_5" -> 5)
-          const communityIdx = parseInt(rel.targetId.replace('comm_', ''), 10) || 0;
-          communityMemberships.set(rel.sourceId, communityIdx);
-        }
+    graph.nodes.forEach(node => {
+      if (node.properties.community !== undefined) {
+        communityMemberships.set(node.id, node.properties.community as number);
       }
     });
 
-    const sigmaGraph = knowledgeGraphToGraphology(graph, communityMemberships);
+    let sigmaGraph: Graph<SigmaNodeAttributes, SigmaEdgeAttributes>;
+
+    if (isDomainView) {
+      // Render the high-level Domain Map
+      sigmaGraph = knowledgeGraphToDomainGraphology(graph, communityMemberships);
+    } else {
+      // Render the standard File Map
+      sigmaGraph = knowledgeGraphToGraphology(graph, communityMemberships);
+    }
+
     setSigmaGraph(sigmaGraph);
-  }, [graph, setSigmaGraph]);
+  }, [graph, isDomainView, setSigmaGraph]);
 
   // Update node visibility when filters change
   useEffect(() => {

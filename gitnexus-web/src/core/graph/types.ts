@@ -47,6 +47,8 @@ export type NodeProperties = {
   outDegree?: number,
   community?: number | string, // Louvain community ID
   repoId?: string, // Identity of the repository this node belongs to
+  author?: string, // Dominant author of the file
+  ownership?: number, // Percentage of the file owned by the dominant author
   [key: string]: any,
 }
 

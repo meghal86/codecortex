@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Code, PanelLeftClose, PanelLeft, Trash2, X, Target, FileCode, Sparkles, MousePointerClick } from 'lucide-react';
+import { Code, PanelLeftClose, PanelLeft, Trash2, X, Target, FileCode, Sparkles, MousePointerClick, Layers } from 'lucide-react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { useAppState } from '../hooks/useAppState';
@@ -184,7 +184,8 @@ export const CodeReferencesPanel = ({ onFocusNode }: CodeReferencesPanelProps) =
   const selectedFilePath = selectedNode?.properties?.filePath;
   const selectedFileContent = selectedFilePath ? fileContents.get(selectedFilePath) : undefined;
   const selectedIsFile = selectedNode?.label === 'File' && !!selectedFilePath;
-  const showSelectedViewer = !!selectedNode && !!selectedFilePath;
+  const selectedIsDomain = selectedNode?.label === 'Community';
+  const showSelectedViewer = !!selectedNode && (!!selectedFilePath || selectedIsDomain);
   const showCitations = aiReferences.length > 0;
 
   if (isCollapsed) {
@@ -376,7 +377,66 @@ Please draft a detailed Refactoring Plan to reduce this risk. Consider file spli
               </div>
             )}
             <div className="flex-1 min-h-0 overflow-auto scrollbar-thin">
-              {selectedFileContent ? (
+              {selectedIsDomain && graph ? (
+                <div className="p-4 space-y-4">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Layers className="w-5 h-5 text-indigo-400" />
+                    <h3 className="text-lg font-semibold text-text-primary">Domain Composition</h3>
+                  </div>
+                  <div className="bg-elevated/40 border border-border-subtle rounded-lg p-3">
+                    <p className="text-sm text-text-secondary mb-3">
+                      This domain contains {selectedNode?.properties.mass || 0} files tightly coupled by business logic.
+                    </p>
+
+                    <button
+                      onClick={async () => {
+                        setRightPanelOpen(true);
+
+                        // Gather all the filenames to send to the AI
+                        const domainFiles = graph.nodes
+                          .filter(n => n.properties.community === selectedNode?.properties.community && n.label !== 'Community')
+                          .map(n => n.properties.name)
+                          .join(', ');
+
+                        await sendChatMessage(`Please generate "Living Domain Documentation" for this architectural domain (Domain ${selectedNode?.properties.community}).
+
+Files in this domain:
+\`\`\`text
+${domainFiles}
+\`\`\`
+
+Tasks:
+1. Infer what business subsystem or module this represents (e.g., Auth, Payments, User Mgmt).
+2. Provide a high-level summary of the domain's responsibility.
+3. Generate a Mermaid sequence or flowchart diagram demonstrating how you think these files interact based on their names.
+4. Suggest a proper name for this Domain.`);
+                      }}
+                      className="w-full mb-4 flex items-center justify-center gap-2 px-3 py-2 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 hover:from-indigo-500/30 hover:to-purple-500/30 border border-indigo-500/30 text-indigo-300 rounded-lg transition-all"
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      <span className="text-xs font-semibold uppercase tracking-wide">Analyze Domain</span>
+                    </button>
+                    <div className="max-h-64 overflow-y-auto space-y-1.5 scrollbar-thin pr-2">
+                      {/* Find all files in this domain */}
+                      {graph.nodes
+                        .filter(n => n.properties.community === selectedNode?.properties.community && n.label !== 'Community')
+                        .slice(0, 50) // Limit to 50 for performance
+                        .map(node => (
+                          <div key={node.id} className="flex items-center gap-2 text-xs py-1.5 px-2 hover:bg-hover rounded cursor-pointer transition-colors" onClick={() => onFocusNode(node.id)}>
+                            <FileCode className="w-3.5 h-3.5 text-text-muted flex-shrink-0" />
+                            <span className="text-text-primary truncate">{node.properties.name}</span>
+                            <span className="text-text-muted text-[10px] ml-auto bg-surface px-1.5 py-0.5 rounded border border-border-subtle">{node.label}</span>
+                          </div>
+                        ))}
+                      {(selectedNode?.properties.mass as number || 0) > 50 && (
+                        <div className="text-xs text-text-muted italic text-center pt-2 border-t border-border-subtle mt-2">
+                          + {(selectedNode?.properties.mass as number || 0) - 50} more files
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : selectedFileContent ? (
                 <SyntaxHighlighter
                   language={
                     selectedFilePath?.endsWith('.py') ? 'python' :
