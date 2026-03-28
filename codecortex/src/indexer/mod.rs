@@ -1,4 +1,5 @@
 pub mod watcher;
+pub mod git;
 
 use crate::core::{CodeNode, NodeKind};
 use crate::graph::CodeGraph;

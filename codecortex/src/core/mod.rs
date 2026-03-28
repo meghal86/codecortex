@@ -1,3 +1,5 @@
+pub mod meta;
+
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -34,14 +36,34 @@ pub enum EdgeKind {
     Defines,
     Inherits,
     Implements,
+    CoModified,
 }
 
 /// An edge representing a relationship in the codebase
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CodeEdge {
     pub kind: EdgeKind,
+    pub weight: f32,
+    pub last_updated: u64,
     /// Metadata like confidence (compiler vs heuristic)
     pub metadata: HashMap<String, String>,
+}
+
+impl CodeEdge {
+    pub fn new(kind: EdgeKind) -> Self {
+        use std::time::{SystemTime, UNIX_EPOCH};
+        let last_updated = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+
+        Self {
+            kind,
+            weight: 1.0,
+            last_updated,
+            metadata: HashMap::new(),
+        }
+    }
 }
 
 impl CodeNode {

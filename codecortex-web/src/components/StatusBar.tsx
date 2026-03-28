@@ -1,0 +1,82 @@
+import { Heart } from 'lucide-react';
+import { useAppState } from '../hooks/useAppState';
+
+export const StatusBar = () => {
+  const { graph, progress } = useAppState();
+
+  const nodeCount = graph?.nodes.filter(n => !n.properties.hidden).length ?? 0;
+  const edgeCount = graph?.relationships.filter(r => !r.hidden).length ?? 0;
+
+  // Detect primary language
+  const primaryLanguage = (() => {
+    if (!graph) return null;
+    const languages = graph.nodes
+      .filter(n => !n.properties.hidden)
+      .map(n => n.properties.language)
+      .filter(Boolean);
+    if (languages.length === 0) return null;
+
+    const counts = languages.reduce((acc, lang) => {
+      acc[lang!] = (acc[lang!] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0];
+  })();
+
+  return (
+    <footer className="flex items-center justify-between px-5 py-1.5 bg-[#000000] border-t border-[#1c1c1c] text-[11px] text-[#52525b] font-mono">
+      {/* Left - Status */}
+      <div className="flex items-center gap-4">
+        {progress && progress.phase !== 'complete' ? (
+          <>
+            <div className="w-28 h-1 bg-elevated rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-accent to-node-interface rounded-full transition-all duration-300"
+                style={{ width: `${progress.percent}%` }}
+              />
+            </div>
+            <span>{progress.message}</span>
+          </>
+        ) : (
+          <div className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 bg-node-function rounded-full" />
+            <span>Ready</span>
+          </div>
+        )}
+      </div>
+
+
+
+      {/* Right - Stats */}
+      <div className="flex items-center gap-3">
+        {graph && (
+          <>
+            <span>{nodeCount} nodes</span>
+            <span className="text-border-default">•</span>
+            <span>{edgeCount} edges</span>
+            {primaryLanguage && (
+              <>
+                <span className="text-border-default">•</span>
+                <span>{primaryLanguage}</span>
+              </>
+            )}
+
+            <span className="text-border-default ml-2">|</span>
+            <button
+              onClick={() => {
+                const { setInsightsDashboardOpen } = useAppState();
+                if (setInsightsDashboardOpen) setInsightsDashboardOpen(true);
+              }}
+              className="ml-2 flex items-center gap-1.5 px-2 py-0.5 rounded bg-[#1e293b] hover:bg-slate-800 text-slate-300 transition-colors cursor-pointer"
+              title="View Code Story Executive Summary"
+            >
+              <Heart size={12} className="text-slate-400" />
+              <span className="font-bold tracking-widest uppercase text-[9px]">View Code Story</span>
+            </button>
+          </>
+        )}
+      </div>
+    </footer>
+  );
+};

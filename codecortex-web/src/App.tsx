@@ -1,297 +1,424 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
-import { init_graph, get_metrics } from 'codecortex';
-import JSZip from 'jszip';
-import './App.css';
+import { useCallback, useEffect, useRef } from 'react';
+import { AppStateProvider, useAppState } from './hooks/useAppState';
+import { DropZone } from './components/DropZone';
+import { LoadingOverlay } from './components/LoadingOverlay';
+import { Header } from './components/Header';
+import { GraphCanvas, GraphCanvasHandle } from './components/GraphCanvas';
+import { RightPanel } from './components/RightPanel';
+import { SettingsPanel } from './components/SettingsPanel';
+import { StatusBar } from './components/StatusBar';
+import { FileTreePanel } from './components/FileTreePanel';
+import { CodeReferencesPanel } from './components/CodeReferencesPanel';
+import { HelpModal } from './components/HelpModal';
+import { InsightsDashboard } from './components/InsightsDashboard';
+import { EnterprisePanel } from './components/EnterprisePanel';
+import { FileEntry } from './services/zip';
+import { getActiveProviderConfig } from './core/llm/settings-service';
+import { createKnowledgeGraph } from './core/graph/graph';
+import { connectToServer, fetchRepos, normalizeServerUrl, type ConnectToServerResult } from './services/server-connection';
+import { TimelineScrubber } from './components/TimelineScrubber';
+import { getMockCommits } from './core/ingestion/git-processor';
+import { GraphStatsBar } from './components/GraphStatsBar';
 
-interface FileEntry {
-  path: string;
-  content: string;
-  size: number;
-}
+const AppContent = () => {
+  const {
+    viewMode,
+    setViewMode,
+    graph,
+    setGraph,
+    setFileContents,
+    setProgress,
+    setProjectName,
+    progress,
+    isRightPanelOpen,
+    runPipeline,
+    runPipelineFromFiles,
+    isSettingsPanelOpen,
+    setSettingsPanelOpen,
+    isHelpModalOpen,
+    setHelpModalOpen,
+    refreshLLMSettings,
+    initializeAgent,
+    startEmbeddings,
+    embeddingStatus,
+    codeReferences,
+    selectedNode,
+    isCodePanelOpen,
+    serverBaseUrl,
+    setServerBaseUrl,
+    availableRepos,
+    setAvailableRepos,
+    switchRepo,
+    setCommits,
+    setSelectedCommitId,
+    selectedCommitId,
+    commits,
+    projectName,
+  } = useAppState();
 
-type ViewMode = 'onboarding' | 'loading' | 'exploring';
+  const graphCanvasRef = useRef<GraphCanvasHandle>(null);
 
-function App() {
-  const [metrics, setMetrics] = useState<{ nodes: number; edges: number } | null>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>('onboarding');
-  const [isDragActive, setIsDragActive] = useState(false);
-  const [progress, setProgress] = useState({ percent: 0, message: '' });
-  const [files, setFiles] = useState<FileEntry[]>([]);
-  const [selectedFile, setSelectedFile] = useState<FileEntry | null>(null);
-  const [projectName, setProjectName] = useState('');
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Initialize the Wasm Graph Memory Context
-  useEffect(() => {
-    try {
-      console.log('Mounting CodeCortex WebAssembly Engine...');
-      init_graph();
-      const m = get_metrics() as { nodes: number; edges: number };
-      setMetrics(m);
-    } catch (e) {
-      console.error('WASM init error:', e);
-    }
-  }, []);
-
-  // ---------- Core Processing Pipeline ----------
-  const processZipFile = useCallback(async (file: File) => {
-    const name = file.name.replace(/\.zip$/i, '');
-    setProjectName(name);
+  const handleFileSelect = useCallback(async (file: File) => {
+    const projectName = file.name.replace('.zip', '');
+    setProjectName(projectName);
+    setProgress({ phase: 'extracting', percent: 0, message: 'Starting...', detail: 'Preparing to extract files' });
     setViewMode('loading');
-    setProgress({ percent: 5, message: 'Extracting ZIP archive...' });
 
     try {
-      const zip = await JSZip.loadAsync(file);
-      const entries: FileEntry[] = [];
-      const totalFiles = Object.keys(zip.files).length;
-      let processed = 0;
+      const result = await runPipeline(file, (progress) => {
+        setProgress(progress);
+      });
 
-      for (const [relativePath, zipEntry] of Object.entries(zip.files)) {
-        if (zipEntry.dir) continue;
+      setGraph(result.graph);
+      setFileContents(result.fileContents);
+      setViewMode('exploring');
 
-        // Skip binary / large files
-        const ext = relativePath.split('.').pop()?.toLowerCase() || '';
-        const textExtensions = [
-          'ts', 'tsx', 'js', 'jsx', 'py', 'rs', 'go', 'java', 'kt', 'rb',
-          'c', 'cpp', 'h', 'hpp', 'cs', 'swift', 'md', 'json', 'yaml', 'yml',
-          'toml', 'xml', 'html', 'css', 'scss', 'sql', 'sh', 'bash', 'txt',
-          'cfg', 'ini', 'env', 'dockerfile', 'makefile', 'gitignore', 'lock',
-        ];
-        const isText = textExtensions.includes(ext) || relativePath.toLowerCase().includes('dockerfile') || relativePath.toLowerCase().includes('makefile');
-
-        if (isText) {
-          try {
-            const content = await zipEntry.async('string');
-            entries.push({ path: relativePath, content, size: content.length });
-          } catch {
-            // Skip files that can't be read as text
-          }
+      // Initialize (or re-initialize) the agent AFTER a repo loads so it captures
+      // the current codebase context (file contents + graph tools) in the worker.
+      if (getActiveProviderConfig()) {
+        try {
+          initializeAgent(projectName);
+        } catch (e) {
+          console.warn('Failed to initialize agent:', e);
         }
-
-        processed++;
-        const pct = Math.round((processed / totalFiles) * 90) + 5;
-        setProgress({ percent: pct, message: `Processing ${relativePath}...` });
       }
 
-      setFiles(entries);
+      // Auto-start embeddings pipeline in background
+      // Uses WebGPU if available, falls back to WASM
+      startEmbeddings().catch((err) => {
+        if (err?.name === 'WebGPUNotAvailableError' || err?.message?.includes('WebGPU')) {
+          startEmbeddings('wasm').catch(console.warn);
+        } else {
+          console.warn('Embeddings auto-start failed:', err);
+        }
+      });
 
-      // Update metrics
-      const m = get_metrics() as { nodes: number; edges: number };
-      setMetrics({ nodes: entries.length, edges: m?.edges || 0 });
-
-      setProgress({ percent: 100, message: `Done! ${entries.length} files extracted.` });
-      setTimeout(() => setViewMode('exploring'), 300);
-    } catch (err) {
-      console.error('ZIP processing error:', err);
-      setProgress({ percent: 0, message: `Error: ${err instanceof Error ? err.message : 'Unknown error'}` });
-      setTimeout(() => setViewMode('onboarding'), 3000);
+      // Initialize Timeline
+      const mCommits = getMockCommits(projectName);
+      setCommits(mCommits);
+      setSelectedCommitId(mCommits[mCommits.length - 1].id);
+    } catch (error) {
+      console.error('Pipeline error:', error);
+      setProgress({
+        phase: 'error',
+        percent: 0,
+        message: 'Error processing file',
+        detail: error instanceof Error ? error.message : 'Unknown error',
+      });
+      setTimeout(() => {
+        setViewMode('onboarding');
+        setProgress(null);
+      }, 8000);
     }
-  }, []);
+  }, [setViewMode, setGraph, setFileContents, setProgress, setProjectName, runPipeline, startEmbeddings, initializeAgent]);
 
-  // Process a folder (from drag-drop or webkitdirectory)
-  const processFileList = useCallback(async (fileList: File[]) => {
-    const name = fileList[0]?.webkitRelativePath?.split('/')[0] || 'repository';
-    setProjectName(name);
+  const handleGitClone = useCallback(async (files: FileEntry[]) => {
+    const firstPath = files[0]?.path || 'repository';
+    const projectName = firstPath.split('/')[0].replace(/-\d+$/, '') || 'repository';
+
+    setProjectName(projectName);
+    setProgress({ phase: 'extracting', percent: 0, message: 'Starting...', detail: 'Preparing to process files' });
     setViewMode('loading');
-    setProgress({ percent: 5, message: 'Reading files...' });
 
-    const entries: FileEntry[] = [];
-    for (let i = 0; i < fileList.length; i++) {
-      const file = fileList[i];
-      const path = file.webkitRelativePath || file.name;
+    try {
+      const result = await runPipelineFromFiles(files, (progress) => {
+        setProgress(progress);
+      });
 
-      // Skip hidden files and node_modules
-      if (path.includes('node_modules/') || path.includes('.git/')) continue;
+      setGraph(result.graph);
+      setFileContents(result.fileContents);
+      setViewMode('exploring');
 
-      try {
-        const content = await file.text();
-        entries.push({ path, content, size: content.length });
-      } catch {
-        // Skip binary files
+      if (getActiveProviderConfig()) {
+        try {
+          initializeAgent(projectName);
+        } catch (e) {
+          console.warn('Failed to initialize agent:', e);
+        }
       }
 
-      const pct = Math.round((i / fileList.length) * 90) + 5;
-      setProgress({ percent: pct, message: `Reading ${path}...` });
+      startEmbeddings().catch((err) => {
+        if (err?.name === 'WebGPUNotAvailableError' || err?.message?.includes('WebGPU')) {
+          startEmbeddings('wasm').catch(console.warn);
+        } else {
+          console.warn('Embeddings auto-start failed:', err);
+        }
+      });
+
+      // Initialize Timeline
+      const mCommits = getMockCommits(projectName);
+      setCommits(mCommits);
+      setSelectedCommitId(mCommits[mCommits.length - 1].id);
+    } catch (error) {
+      console.error('Pipeline error:', error);
+      setProgress({
+        phase: 'error',
+        percent: 0,
+        message: 'Error processing repository',
+        detail: error instanceof Error ? error.message : 'Unknown error',
+      });
+      setTimeout(() => {
+        setViewMode('onboarding');
+        setProgress(null);
+      }, 8000);
+    }
+  }, [setViewMode, setGraph, setFileContents, setProgress, setProjectName, runPipelineFromFiles, startEmbeddings, initializeAgent]);
+
+  const handleServerConnect = useCallback((result: ConnectToServerResult) => {
+    // Extract project name from repoPath
+    const repoPath = result.repoInfo.repoPath;
+    const projectName = repoPath.split('/').pop() || 'server-project';
+    setProjectName(projectName);
+
+    // Build KnowledgeGraph from server data (bypasses WASM pipeline entirely)
+    const graph = createKnowledgeGraph();
+    for (const node of result.nodes) {
+      graph.addNode(node);
+    }
+    for (const rel of result.relationships) {
+      graph.addRelationship(rel);
+    }
+    setGraph(graph);
+
+    // Set file contents from extracted File node content
+    const fileMap = new Map<string, string>();
+    for (const [path, content] of Object.entries(result.fileContents)) {
+      fileMap.set(path, content);
+    }
+    setFileContents(fileMap);
+
+    // Transition directly to exploring view
+    setViewMode('exploring');
+
+    // Initialize agent if LLM is configured
+    if (getActiveProviderConfig()) {
+      try {
+        initializeAgent(projectName);
+      } catch (e) {
+        console.warn('Failed to initialize agent:', e);
+      }
     }
 
-    setFiles(entries);
-    setMetrics({ nodes: entries.length, edges: 0 });
-    setProgress({ percent: 100, message: `Done! ${entries.length} files loaded.` });
-    setTimeout(() => setViewMode('exploring'), 300);
+    // Auto-start embeddings
+    startEmbeddings().catch((err) => {
+      if (err?.name === 'WebGPUNotAvailableError' || err?.message?.includes('WebGPU')) {
+        startEmbeddings('wasm').catch(console.warn);
+      } else {
+        console.warn('Embeddings auto-start failed:', err);
+      }
+    });
+
+    // Initialize Timeline
+    const mCommits = getMockCommits(projectName);
+    setCommits(mCommits);
+    setSelectedCommitId(mCommits[mCommits.length - 1].id);
+  }, [setViewMode, setGraph, setFileContents, setProjectName, initializeAgent, startEmbeddings, setCommits, setSelectedCommitId]);
+
+  // Auto-connect when ?server query param is present (bookmarkable shortcut)
+  const autoConnectRan = useRef(false);
+  useEffect(() => {
+    if (autoConnectRan.current) return;
+    const params = new URLSearchParams(window.location.search);
+    if (!params.has('server')) return;
+    autoConnectRan.current = true;
+
+    // Clean the URL so a refresh won't re-trigger
+    const cleanUrl = window.location.pathname + window.location.hash;
+    window.history.replaceState(null, '', cleanUrl);
+
+    setProgress({ phase: 'extracting', percent: 0, message: 'Connecting to server...', detail: 'Validating server' });
+    setViewMode('loading');
+
+    const serverUrl = params.get('server') || window.location.origin;
+
+    const baseUrl = normalizeServerUrl(serverUrl);
+
+    connectToServer(serverUrl, (phase, downloaded, total) => {
+      if (phase === 'validating') {
+        setProgress({ phase: 'extracting', percent: 5, message: 'Connecting to server...', detail: 'Validating server' });
+      } else if (phase === 'downloading') {
+        const pct = total ? Math.round((downloaded / total) * 90) + 5 : 50;
+        const mb = (downloaded / (1024 * 1024)).toFixed(1);
+        setProgress({ phase: 'extracting', percent: pct, message: 'Downloading graph...', detail: `${mb} MB downloaded` });
+      } else if (phase === 'extracting') {
+        setProgress({ phase: 'extracting', percent: 97, message: 'Processing...', detail: 'Extracting file contents' });
+      }
+    }).then(async (result) => {
+      handleServerConnect(result);
+
+      // Store server URL and fetch available repos for the repo switcher
+      setServerBaseUrl(baseUrl);
+      try {
+        const repos = await fetchRepos(baseUrl);
+        setAvailableRepos(repos);
+      } catch (e) {
+        console.warn('Failed to fetch repo list:', e);
+      }
+    }).catch((err) => {
+      console.error('Auto-connect failed:', err);
+      setProgress({
+        phase: 'error',
+        percent: 0,
+        message: 'Failed to connect to server',
+        detail: err instanceof Error ? err.message : 'Unknown error',
+      });
+      setTimeout(() => {
+        setViewMode('onboarding');
+        setProgress(null);
+      }, 8000);
+    });
+  }, [handleServerConnect, setProgress, setViewMode, setServerBaseUrl, setAvailableRepos]);
+
+  const handleFocusNode = useCallback((nodeId: string) => {
+    graphCanvasRef.current?.focusNode(nodeId);
   }, []);
 
-  // ---------- Drag & Drop Handlers ----------
-  const handleDragEnter = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragActive(true);
-  }, []);
+  // Handle settings saved - refresh and reinitialize agent
+  // NOTE: Must be defined BEFORE any conditional returns (React hooks rule)
+  const handleSettingsSaved = useCallback(() => {
+    refreshLLMSettings();
+    initializeAgent();
+  }, [refreshLLMSettings, initializeAgent]);
+  // --- PHASE 6: MOCK EVOLUTION DRIFT ---
+  useEffect(() => {
+    if (!graph || !selectedCommitId || !commits.length) return;
 
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-  }, []);
+    const selectedIndex = commits.findIndex(c => c.id === selectedCommitId);
+    if (selectedIndex === -1) return;
 
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragActive(false);
-  }, []);
+    // Simulate "drift" by hiding nodes that were "added" after the selected commit
+    // (Simplified mock logic: nodes are hidden based on a stable index-based heuristic)
+    const updatedNodes = graph.nodes.map((node: any, idx: number) => {
+      // Hide ~20% of nodes for each commit back in time
+      const nodeCreationIndex = (idx * 13) % (commits.length + 1);
+      const isVisibleInSelectedCommit = nodeCreationIndex <= selectedIndex + 1;
 
-  const handleDrop = useCallback(async (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragActive(false);
+      return {
+        ...node,
+        properties: {
+          ...node.properties,
+          hidden: !isVisibleInSelectedCommit,
+        }
+      };
+    });
 
-    const droppedFiles = e.dataTransfer.files;
-    if (!droppedFiles || droppedFiles.length === 0) return;
+    // Also hide edges connected to hidden nodes
+    const updatedRelationships = graph.relationships.map((rel: any) => {
+      const source = updatedNodes.find((n: any) => n.id === rel.sourceId);
+      const target = updatedNodes.find((n: any) => n.id === rel.targetId);
+      return {
+        ...rel,
+        hidden: source?.properties.hidden || target?.properties.hidden,
+      };
+    });
 
-    // Check if it's a ZIP file
-    const firstFile = droppedFiles[0];
-    if (firstFile.name.endsWith('.zip')) {
-      await processZipFile(firstFile);
-      return;
-    }
+    // We create a new graph object to trigger React/Sigma re-render
+    const newGraph = createKnowledgeGraph();
+    updatedNodes.forEach((n: any) => newGraph.addNode(n));
+    updatedRelationships.forEach((r: any) => newGraph.addRelationship(r));
 
-    // Otherwise treat as folder drop
-    const fileArray = Array.from(droppedFiles);
-    await processFileList(fileArray);
-  }, [processZipFile, processFileList]);
+    setGraph(newGraph);
+  }, [selectedCommitId, commits, setGraph]);
 
-  // ---------- Click to Browse ----------
-  const handleBrowseClick = useCallback(() => {
-    fileInputRef.current?.click();
-  }, []);
-
-  const handleFileInputChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const inputFiles = e.target.files;
-    if (!inputFiles || inputFiles.length === 0) return;
-
-    const firstFile = inputFiles[0];
-    if (firstFile.name.endsWith('.zip')) {
-      await processZipFile(firstFile);
-    } else {
-      await processFileList(Array.from(inputFiles));
-    }
-  }, [processZipFile, processFileList]);
-
-  // ========== VIEWS ==========
-
-  // --- Loading View ---
-  if (viewMode === 'loading') {
+  // Render based on view mode
+  if (viewMode === 'onboarding') {
     return (
-      <div className="app-container">
-        <div className="loading-screen">
-          <div className="progress-ring">
-            <svg viewBox="0 0 120 120">
-              <circle cx="60" cy="60" r="54" className="progress-bg" />
-              <circle
-                cx="60" cy="60" r="54"
-                className="progress-fill"
-                strokeDasharray={`${progress.percent * 3.39} 339.292`}
-              />
-            </svg>
-            <span className="progress-text">{progress.percent}%</span>
-          </div>
-          <p className="progress-message">{progress.message}</p>
-        </div>
-      </div>
+      <DropZone
+        onFileSelect={handleFileSelect}
+        onGitClone={handleGitClone}
+        onServerConnect={async (result, serverUrl) => {
+          handleServerConnect(result);
+          if (serverUrl) {
+            const baseUrl = normalizeServerUrl(serverUrl);
+            setServerBaseUrl(baseUrl);
+            try {
+              const repos = await fetchRepos(baseUrl);
+              setAvailableRepos(repos);
+            } catch (e) {
+              console.warn('Failed to fetch repo list:', e);
+            }
+          }
+        }}
+      />
     );
   }
 
-  // --- Exploring View ---
-  if (viewMode === 'exploring') {
-    return (
-      <div className="app-container">
-        <header className="header">
-          <h1>CodeCortex</h1>
-          <span className="project-name">{projectName}</span>
-          <div className="status-badge">
-            {metrics?.nodes || 0} files • {metrics?.edges || 0} relationships
-          </div>
-          <button className="back-btn" onClick={() => { setViewMode('onboarding'); setFiles([]); setSelectedFile(null); }}>
-            ← New Analysis
-          </button>
-        </header>
-
-        <main className="explorer">
-          <aside className="file-tree">
-            <h3>Files ({files.length})</h3>
-            <ul>
-              {files.map((f) => (
-                <li
-                  key={f.path}
-                  className={`file-item ${selectedFile?.path === f.path ? 'active' : ''}`}
-                  onClick={() => setSelectedFile(f)}
-                >
-                  <span className="file-icon">📄</span>
-                  <span className="file-name" title={f.path}>{f.path.split('/').pop()}</span>
-                  <span className="file-size">{(f.size / 1024).toFixed(1)}k</span>
-                </li>
-              ))}
-            </ul>
-          </aside>
-
-          <section className="code-viewer">
-            {selectedFile ? (
-              <>
-                <div className="code-header">
-                  <span>{selectedFile.path}</span>
-                  <span className="line-count">{selectedFile.content.split('\n').length} lines</span>
-                </div>
-                <pre className="code-block">
-                  <code>{selectedFile.content}</code>
-                </pre>
-              </>
-            ) : (
-              <div className="empty-state">
-                <p>Select a file from the tree to view its contents</p>
-              </div>
-            )}
-          </section>
-        </main>
-      </div>
-    );
+  if (viewMode === 'loading' && progress) {
+    return <LoadingOverlay progress={progress} />;
   }
 
-  // --- Onboarding / Drop Zone View ---
+  // Exploring view
   return (
-    <div
-      className={`app-container ${isDragActive ? 'drag-active' : ''}`}
-      onDragEnter={handleDragEnter}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-    >
-      <header className="header">
-        <h1>CodeCortex</h1>
-        <div className="status-badge">
-          WASM Engine Ready
-        </div>
-      </header>
+    <div className="flex flex-col h-screen w-screen bg-[#000] text-[#ededed] overflow-hidden" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+      
+      {/* Top Navigation Bar */}
+      <Header onFocusNode={handleFocusNode} availableRepos={availableRepos} onSwitchRepo={switchRepo} />
 
-      <main className="main-content">
-        <div className={`dropzone ${isDragActive ? 'active' : ''}`} onClick={handleBrowseClick}>
-          <svg className="upload-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-          </svg>
-          <h2>{isDragActive ? 'Release to Analyze' : 'Drop Repository to Analyze'}</h2>
-          <p>
-            Drag a <strong>.zip</strong> file here, or <span className="browse-link">click to browse</span>
-            <br />
-            Analyzed 100% locally in <strong>WebAssembly</strong>. No data leaves your machine.
-          </p>
+      {/* Main Work Area (Left Panel, Center Graph, Right Panels) */}
+      <main className="flex-1 flex min-h-0 overflow-hidden border-t border-[#1c1c1c]">
+        
+        {/* Left Side: Navigation / File Tree */}
+        <FileTreePanel onFocusNode={handleFocusNode} />
+
+        {/* Center: Interactive Knowledge Graph */}
+        <div className="flex-1 flex flex-col relative min-w-0 bg-[#050505]">
+          <GraphStatsBar />
+          <div className="flex-1 relative min-w-0">
+            <GraphCanvas ref={graphCanvasRef} />
+          </div>
         </div>
+
+        {/* Right Side: Code Context & Insights Chat */}
+        {isCodePanelOpen && (codeReferences.length > 0 || !!selectedNode) && (
+          <div className="border-l border-[#1c1c1c] flex-shrink-0">
+             <CodeReferencesPanel onFocusNode={handleFocusNode} />
+          </div>
+        )}
+
+        {isRightPanelOpen && (
+          <div className="border-l border-[#1c1c1c] flex-shrink-0">
+             <RightPanel />
+          </div>
+        )}
+
       </main>
 
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".zip"
-        style={{ display: 'none' }}
-        onChange={handleFileInputChange}
+      {/* Bottom Status Bar */}
+      <div className="border-t border-[#1c1c1c] bg-[#000]">
+        <StatusBar />
+      </div>
+
+      {/* Global Interactive Overlays */}
+      {viewMode === 'exploring' && (
+        <>
+          <TimelineScrubber />
+          <InsightsDashboard />
+          <EnterprisePanel />
+        </>
+      )}
+
+      {/* Settings Panel (modal) */}
+      <SettingsPanel
+        isOpen={isSettingsPanelOpen}
+        onClose={() => setSettingsPanelOpen(false)}
+        onSettingsSaved={handleSettingsSaved}
       />
+
+      {/* Help Modal */}
+      <HelpModal
+        isOpen={isHelpModalOpen}
+        onClose={() => setHelpModalOpen(false)}
+      />
+
     </div>
+  );
+};
+
+function App() {
+  return (
+    <AppStateProvider>
+      <AppContent />
+    </AppStateProvider>
   );
 }
 

@@ -22,16 +22,22 @@ pub fn detect_communities(graph_engine: &CodeGraph, max_iterations: usize) -> Ha
     }
 
     // LPA loop
-    let mut rng_seed = 42; // deterministic mock seed for MVP
+    let mut rng_seed: u64 = 42; // deterministic mock seed for MVP
     
     for _iteration in 0..max_iterations {
         let mut changed = false;
         
         let mut indices: Vec<NodeIndex> = internal_graph.node_indices().collect();
         // Simple pseudo-random shuffle to prevent oscillation
+        let iteration_seed = rng_seed.wrapping_add(_iteration as u64);
+        rng_seed = iteration_seed; 
         indices.sort_by_key(|&idx| {
-            rng_seed = rng_seed * 48271 % 2147483647;
-            rng_seed ^ (idx.index() as u64)
+            // Pure function based on iteration_seed and idx
+            let mut x = (idx.index() as u64).wrapping_add(iteration_seed);
+            x ^= x << 13;
+            x ^= x >> 17;
+            x ^= x << 5;
+            x
         });
         
         for idx in indices {
