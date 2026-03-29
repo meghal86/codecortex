@@ -1,0 +1,6 @@
+{
+  "version": 2,
+  "buildCommand": "cd codecortex-web && npm install && npm run build",
+  "outputDirectory": "codecortex-web/dist",
+  "framework": "vite"
+}
