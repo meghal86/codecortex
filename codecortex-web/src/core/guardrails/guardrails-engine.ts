@@ -13,6 +13,8 @@ export interface GuardrailRule {
 /**
  * Guardrails Engine enforces architectural constraints on the graph.
  * e.g., "Services should not call UI components directly".
+ * 
+ * Uses O(1) node lookups via graph.getNode() instead of O(N) .find() scans.
  */
 export const runGuardrails = (
     graph: KnowledgeGraph,
@@ -21,8 +23,8 @@ export const runGuardrails = (
     let violationCount = 0;
 
     graph.relationships.forEach(rel => {
-        const sourceNode = graph.nodes.find(n => n.id === rel.sourceId);
-        const targetNode = graph.nodes.find(n => n.id === rel.targetId);
+        const sourceNode = graph.getNode(rel.sourceId);
+        const targetNode = graph.getNode(rel.targetId);
 
         if (!sourceNode || !targetNode) return;
 
@@ -65,3 +67,4 @@ export const runGuardrails = (
 
     return violationCount;
 };
+

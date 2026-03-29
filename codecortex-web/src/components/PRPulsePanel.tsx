@@ -17,6 +17,7 @@ export const PRPulsePanel = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
     const [result, setResult] = useState<BlastRadiusResult | null>(null);
+    const [maxDepth, setMaxDepth] = useState(4);
 
     // Get all file nodes from the graph
     const allFiles = useMemo(() => {
@@ -51,7 +52,7 @@ export const PRPulsePanel = () => {
 
         // Calculate Blast Radius
         const changedNodeIds = Array.from(selectedFiles);
-        const impact = calculateBlastRadius(graph, changedNodeIds, 2);
+        const impact = calculateBlastRadius(graph, changedNodeIds, maxDepth);
 
         setResult(impact);
         setBlastRadiusNodeIds(impact.affectedNodeIds);
@@ -115,6 +116,20 @@ export const PRPulsePanel = () => {
                             Clear
                         </button>
                     )}
+                </div>
+
+                {/* Depth Slider */}
+                <div className="flex items-center gap-3 mt-3">
+                    <label className="text-[10px] uppercase font-semibold text-text-muted tracking-wider whitespace-nowrap">Depth</label>
+                    <input
+                        type="range"
+                        min={1}
+                        max={6}
+                        value={maxDepth}
+                        onChange={(e) => setMaxDepth(Number(e.target.value))}
+                        className="flex-1 h-1 accent-accent"
+                    />
+                    <span className="text-xs font-mono text-text-secondary w-4 text-center">{maxDepth}</span>
                 </div>
             </div>
 

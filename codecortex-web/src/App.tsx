@@ -12,6 +12,8 @@ import { CodeReferencesPanel } from './components/CodeReferencesPanel';
 import { HelpModal } from './components/HelpModal';
 import { InsightsDashboard } from './components/InsightsDashboard';
 import { EnterprisePanel } from './components/EnterprisePanel';
+import { DeadCodeReport } from './components/DeadCodeReport';
+import { HealthTrendDashboard } from './components/HealthTrendDashboard';
 import { FileEntry } from './services/zip';
 import { getActiveProviderConfig } from './core/llm/settings-service';
 import { createKnowledgeGraph } from './core/graph/graph';
@@ -54,6 +56,10 @@ const AppContent = () => {
     selectedCommitId,
     commits,
     projectName,
+    isDeadCodeOpen,
+    setDeadCodeOpen,
+    isHealthTrendOpen,
+    setHealthTrendOpen
   } = useAppState();
 
   const graphCanvasRef = useRef<GraphCanvasHandle>(null);
@@ -93,10 +99,10 @@ const AppContent = () => {
         }
       });
 
-      // Initialize Timeline
-      const mCommits = getMockCommits(projectName);
-      setCommits(mCommits);
-      setSelectedCommitId(mCommits[mCommits.length - 1].id);
+      // Timeline: skip mock commits — will be connected to real git data later
+      // const mCommits = getMockCommits(projectName);
+      // setCommits(mCommits);
+      // setSelectedCommitId(mCommits[mCommits.length - 1].id);
     } catch (error) {
       console.error('Pipeline error:', error);
       setProgress({
@@ -145,10 +151,10 @@ const AppContent = () => {
         }
       });
 
-      // Initialize Timeline
-      const mCommits = getMockCommits(projectName);
-      setCommits(mCommits);
-      setSelectedCommitId(mCommits[mCommits.length - 1].id);
+      // Timeline: skip mock commits — will be connected to real git data later
+      // const mCommits = getMockCommits(projectName);
+      // setCommits(mCommits);
+      // setSelectedCommitId(mCommits[mCommits.length - 1].id);
     } catch (error) {
       console.error('Pipeline error:', error);
       setProgress({
@@ -208,10 +214,10 @@ const AppContent = () => {
       }
     });
 
-    // Initialize Timeline
-    const mCommits = getMockCommits(projectName);
-    setCommits(mCommits);
-    setSelectedCommitId(mCommits[mCommits.length - 1].id);
+    // Timeline: skip mock commits — will be connected to real git data later
+    // const mCommits = getMockCommits(projectName);
+    // setCommits(mCommits);
+    // setSelectedCommitId(mCommits[mCommits.length - 1].id);
   }, [setViewMode, setGraph, setFileContents, setProjectName, initializeAgent, startEmbeddings, setCommits, setSelectedCommitId]);
 
   // Auto-connect when ?server query param is present (bookmarkable shortcut)
@@ -391,9 +397,14 @@ const AppContent = () => {
       {/* Global Interactive Overlays */}
       {viewMode === 'exploring' && (
         <>
-          <TimelineScrubber />
+          {commits.length > 0 && <TimelineScrubber />}
           <InsightsDashboard />
           <EnterprisePanel />
+          <DeadCodeReport
+            isOpen={isDeadCodeOpen}
+            onClose={() => setDeadCodeOpen(false)}
+            onFocusNode={handleFocusNode}
+          />
         </>
       )}
 
@@ -409,6 +420,9 @@ const AppContent = () => {
         isOpen={isHelpModalOpen}
         onClose={() => setHelpModalOpen(false)}
       />
+
+      {/* Health Trend Dashboard */}
+      <HealthTrendDashboard />
 
     </div>
   );

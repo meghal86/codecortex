@@ -97,4 +97,12 @@ export interface KnowledgeGraph {
   addNode: (node: GraphNode) => void,
   addRelationship: (relationship: GraphRelationship) => void,
   mergeGraph: (other: KnowledgeGraph) => void,
+  /** O(1) lookup: get a node by its ID */
+  getNode: (nodeId: string) => GraphNode | undefined,
+  /** O(1) lookup: get all relationships where sourceId === nodeId */
+  getOutgoing: (nodeId: string) => GraphRelationship[],
+  /** O(1) lookup: get all relationships where targetId === nodeId */
+  getIncoming: (nodeId: string) => GraphRelationship[],
+  /** O(1) lookup: get all relationships of a given type */
+  getByType: (type: RelationshipType) => GraphRelationship[],
 }

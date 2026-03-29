@@ -21,7 +21,7 @@ export interface BackendRepo {
 
 // ── Configuration ──────────────────────────────────────────────────────────
 
-let backendUrl = 'http://localhost:3030';
+let backendUrl = 'http://localhost:4747';
 
 export const setBackendUrl = (url: string): void => {
   backendUrl = url.replace(/\/$/, '');
@@ -243,6 +243,15 @@ export const fetchAnalyticsSubsystems = async (): Promise<any> => {
  */
 export const fetchAnalyticsDeserts = async (): Promise<any> => {
   const response = await fetchWithTimeout(`${backendUrl}/api/analytics/deserts`);
+  await assertOk(response);
+  return response.json();
+};
+
+/**
+ * Fetch Health History (Architecture snapshots)
+ */
+export const fetchHealthHistory = async (repo: string): Promise<any[]> => {
+  const response = await fetchWithTimeout(`${backendUrl}/api/health-history?repo=${encodeURIComponent(repo)}`);
   await assertOk(response);
   return response.json();
 };

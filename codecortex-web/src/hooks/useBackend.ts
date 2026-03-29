@@ -11,7 +11,7 @@ import {
 
 const LS_URL_KEY = 'codecortex-backend-url';
 const LS_REPO_KEY = 'codecortex-backend-repo';
-const DEFAULT_URL = 'http://localhost:3030';
+const DEFAULT_URL = 'http://localhost:4747';
 
 // ── Debounce delay ───────────────────────────────────────────────────────────
 

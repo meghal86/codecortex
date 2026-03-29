@@ -18,8 +18,8 @@ const initFS = () => {
 };
 
 // Hosted proxy URL - use this for localhost to avoid local proxy issues
-// NOTE: Reverted back to gitnexus since the production edge function still lives there
-const HOSTED_PROXY_URL = 'https://gitnexus.vercel.app/api/proxy';
+// NOTE: Reverted back to codecortex since the production edge function still lives there
+const HOSTED_PROXY_URL = 'https://codecortex.vercel.app/api/proxy';
 
 /**
  * Custom HTTP client that uses a query-param based proxy

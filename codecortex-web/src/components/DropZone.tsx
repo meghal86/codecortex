@@ -3,6 +3,7 @@ import { Upload, FileArchive, Github, Loader2, ArrowRight, Key, Eye, EyeOff, Glo
 import { cloneRepository, parseGitHubUrl } from '../services/git-clone';
 import { connectToServer, type ConnectToServerResult } from '../services/server-connection';
 import { FileEntry } from '../services/zip';
+import { DEMO_REPOS } from '../config/demo-repos';
 
 interface DropZoneProps {
   onFileSelect: (file: File) => void;
@@ -76,16 +77,17 @@ export const DropZone = ({ onFileSelect, onGitClone, onServerConnect }: DropZone
     }
   }, [onFileSelect]);
 
-  const handleGitClone = async () => {
-    if (!githubUrl.trim()) { setError('Please enter a GitHub URL'); return; }
-    const parsed = parseGitHubUrl(githubUrl);
+  const handleGitClone = async (urlOverride?: string) => {
+    const url = urlOverride || githubUrl;
+    if (!url.trim()) { setError('Please enter a GitHub URL'); return; }
+    const parsed = parseGitHubUrl(url);
     if (!parsed) { setError('Invalid GitHub URL. Use format: https://github.com/owner/repo'); return; }
     setError(null);
     setIsCloning(true);
     setCloneProgress({ phase: 'starting', percent: 0 });
     try {
       const files = await cloneRepository(
-        githubUrl,
+        url,
         (phase, percent) => setCloneProgress({ phase, percent }),
         githubToken || undefined
       );
@@ -108,7 +110,7 @@ export const DropZone = ({ onFileSelect, onGitClone, onServerConnect }: DropZone
   };
 
   const handleServerConnect = async () => {
-    const urlToUse = serverUrl.trim() || 'http://localhost:3030';
+    const urlToUse = serverUrl.trim() || 'http://localhost:4747';
     if (!urlToUse) { setError('Please enter a server URL'); return; }
     localStorage.setItem('codecortex-server-url', serverUrl);
     setError(null);
@@ -285,7 +287,7 @@ export const DropZone = ({ onFileSelect, onGitClone, onServerConnect }: DropZone
             </div>
 
             <button
-              onClick={handleGitClone}
+              onClick={() => handleGitClone()}
               disabled={isCloning || !githubUrl.trim()}
               className="w-full h-10 flex items-center justify-center gap-2 bg-[#ededed] hover:bg-white text-[#000] text-[13px] font-medium rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]"
             >
@@ -377,6 +379,36 @@ export const DropZone = ({ onFileSelect, onGitClone, onServerConnect }: DropZone
             )}
           </div>
         )}
+
+        {/* ── TRY A DEMO ── */}
+        <div className="mt-8 pt-6 border-t border-[#1c1c1c]">
+          <p className="text-[11px] text-[#52525b] uppercase tracking-wider font-medium mb-3 text-center">Or explore a demo repository</p>
+          <div className="grid grid-cols-1 gap-2">
+            {DEMO_REPOS.slice(0, 3).map((repo) => (
+              <button
+                key={repo.name}
+                disabled={isCloning}
+                onClick={() => {
+                  setGithubUrl(repo.url);
+                  setActiveTab('github');
+                  // Auto-trigger clone
+                  handleGitClone(repo.url);
+                }}
+                className="group flex items-center gap-3 px-3 py-2.5 bg-[#0a0a0a] border border-[#1c1c1c] rounded-lg hover:bg-[#111] hover:border-[#2a2a2a] transition-all text-left"
+              >
+                <span className="text-lg shrink-0">{repo.icon}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[12px] font-medium text-[#ededed] group-hover:text-white">{repo.name}</div>
+                  <div className="text-[10px] text-[#52525b] truncate">{repo.description}</div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-[9px] font-mono text-[#3f3f46] px-1.5 py-0.5 bg-[#141414] border border-[#1c1c1c] rounded">{repo.language}</span>
+                  <ArrowRight className="w-3 h-3 text-[#3f3f46] group-hover:text-[#3b82f6] group-hover:translate-x-0.5 transition-all" />
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
 
         {/* ── KEYBOARD SHORTCUT HINT ── */}
         <div className="flex items-center justify-center gap-6 mt-8 text-[10px] text-[#3f3f46]">

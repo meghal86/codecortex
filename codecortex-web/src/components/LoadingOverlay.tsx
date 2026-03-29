@@ -40,8 +40,8 @@ export const LoadingOverlay = ({ progress }: LoadingOverlayProps) => {
           </div>
           <div className="flex items-center justify-between mt-2">
             <span className="text-[10px] text-[#3f3f46] font-mono">{progress.percent}%</span>
-            <span className="text-[10px] text-[#3f3f46] font-mono">
-              {progress.phase === 'parsing' ? 'Parsing' : progress.phase === 'building' ? 'Building' : progress.phase === 'complete' ? 'Done' : 'Processing'}
+            <span className="text-[10px] text-[#3f3f46] font-mono capitalize">
+              {progress.phase === 'complete' ? 'Done' : progress.phase === 'error' ? 'Error' : progress.phase}
             </span>
           </div>
         </div>

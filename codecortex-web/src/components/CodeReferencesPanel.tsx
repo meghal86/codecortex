@@ -41,6 +41,7 @@ export const CodeReferencesPanel = ({ onFocusNode }: CodeReferencesPanelProps) =
     codeReferenceFocus,
     sendChatMessage,
     setRightPanelOpen,
+    setRightPanelTab,
     taintedNodeIds,
     setTaintHighlights,
     clearTaintHighlights,
@@ -316,7 +317,9 @@ export const CodeReferencesPanel = ({ onFocusNode }: CodeReferencesPanelProps) =
                               <button
                                 onClick={() => {
                                   const result = traceDataFlow(graph!, selectedNode.id);
-                                  setTaintHighlights(result.pathNodeIds, result.pathEdgeIds);
+                                  setTaintHighlights(result.pathNodeIds, result.pathEdgeIds, result.sinks);
+                                  setRightPanelOpen(true);
+                                  setRightPanelTab('taint');
                                 }}
                                 className="flex items-center gap-1.5 px-2.5 py-1.5 bg-surface border border-cyan-500/30 hover:bg-cyan-500/10 text-cyan-400 rounded-lg transition-all active:scale-95 group"
                                 title="Follow the data flow from this node"

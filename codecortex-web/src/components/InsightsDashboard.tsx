@@ -3,7 +3,7 @@ import { useAppState } from '../hooks/useAppState';
 import { X, Network, AlertTriangle, Ghost, ArrowRight } from 'lucide-react';
 
 export const InsightsDashboard: React.FC = () => {
-    const { graph, isInsightsDashboardOpen, setInsightsDashboardOpen, setSelectedNode } = useAppState();
+    const { graph, isInsightsDashboardOpen, setInsightsDashboardOpen, setSelectedNode, setDeadCodeOpen } = useAppState();
 
     // Compute metrics
     const insights = useMemo(() => {
@@ -16,8 +16,13 @@ export const InsightsDashboard: React.FC = () => {
         const spaghettiNode = [...graph.nodes].sort((a, b) => (b.properties.complexityScore || 0) - (a.properties.complexityScore || 0))[0];
 
         // 3. The Ghost Town (Stale Code / Isolated)
-        // For mock purposes, find a node with 0 in-degree and 0 out-degree, or low PageRank
-        const ghostNode = graph.nodes.find(n => (n.properties.inDegree === 0 && n.properties.outDegree === 0)) || graph.nodes[graph.nodes.length - 1];
+        // Find a truly isolated node — never fall back to a random node
+        const ghostNode = graph.nodes.find(n => 
+            n.properties.inDegree === 0 && 
+            n.properties.outDegree === 0 &&
+            n.label !== 'Folder' && 
+            n.label !== 'Project'
+        ) || null;
 
         return { trafficJamNode, spaghettiNode, ghostNode };
     }, [graph]);
@@ -105,27 +110,40 @@ export const InsightsDashboard: React.FC = () => {
                     )}
 
                     {/* Ghost Town */}
-                    {ghostNode && (
-                        <div className="bg-white/[0.03] border border-white/10 rounded-xl p-6 flex flex-col hover:bg-white/[0.05] transition-colors group">
-                            <div className="w-12 h-12 rounded-lg bg-gray-500/20 text-gray-400 flex items-center justify-center mb-4">
-                                <Ghost size={24} />
-                            </div>
-                            <h3 className="text-lg font-medium text-text mb-2 flex items-center gap-2">
-                                👻 The Ghost Town
-                            </h3>
-                            <p className="text-sm text-text-muted mb-4 flex-grow">
-                                <code className="text-gray-300 bg-gray-700/50 px-1 py-0.5 rounded">{ghostNode.properties.name}</code> appears to be completely isolated. No other parts of your architecture depend on it, and it doesn't call anything else. This might be dead code that is safe to delete to reduce bloat.
-                            </p>
-                            <div className="mt-auto pt-4 border-t border-white/5 flex items-center justify-between">
-                                <div className="text-xs text-text-muted">
-                                    <span className="text-gray-400 font-medium">0</span> active connections.
-                                </div>
-                                <button onClick={() => handleFocus(ghostNode.id)} className="text-xs font-medium text-accent hover:text-accent-light flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                                    View on Map <ArrowRight size={14} />
-                                </button>
-                            </div>
+                    <div className="bg-white/[0.03] border border-white/10 rounded-xl p-6 flex flex-col hover:bg-white/[0.05] transition-colors group">
+                        <div className="w-12 h-12 rounded-lg bg-gray-500/20 text-gray-400 flex items-center justify-center mb-4">
+                            <Ghost size={24} />
                         </div>
-                    )}
+                        <h3 className="text-lg font-medium text-text mb-2 flex items-center gap-2">
+                            👻 The Ghost Town
+                        </h3>
+                        {ghostNode ? (
+                            <>
+                                <p className="text-sm text-text-muted mb-4 flex-grow">
+                                    <code className="text-gray-300 bg-gray-700/50 px-1 py-0.5 rounded">{ghostNode.properties.name}</code> appears to be completely isolated. No other parts of your architecture depend on it, and it doesn't call anything else. This might be dead code that is safe to delete to reduce bloat.
+                                </p>
+                                <div className="mt-auto pt-4 border-t border-white/5 flex items-center justify-between">
+                                    <div className="text-xs text-text-muted">
+                                        <span className="text-gray-400 font-medium">0</span> active connections.
+                                    </div>
+                                    <button onClick={() => { setInsightsDashboardOpen(false); setDeadCodeOpen(true); }} className="text-xs font-medium text-accent hover:text-accent-light flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                                        View Full Report <ArrowRight size={14} />
+                                    </button>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <p className="text-sm text-text-muted mb-4 flex-grow">
+                                    No ghost towns found 🎉 — every symbol in your codebase has at least one active connection. Your architecture looks well-connected.
+                                </p>
+                                <div className="mt-auto pt-4 border-t border-white/5 flex items-center justify-end">
+                                    <button onClick={() => { setInsightsDashboardOpen(false); setDeadCodeOpen(true); }} className="text-xs font-medium text-accent hover:text-accent-light flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                                        View Dead Code Report <ArrowRight size={14} />
+                                    </button>
+                                </div>
+                            </>
+                        )}
+                    </div>
                 </div>
 
                 {/* Footer Action */}

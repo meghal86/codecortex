@@ -8,7 +8,7 @@ export interface BlastRadiusResult {
 export function calculateBlastRadius(
     graph: KnowledgeGraph,
     changedNodeIds: string[],
-    maxDepth: number = 2
+    maxDepth: number = 4
 ): BlastRadiusResult {
     const affected = new Set<string>();
     const queue: { id: string; depth: number }[] = [];
@@ -20,10 +20,10 @@ export function calculateBlastRadius(
         }
 
         // If the changed node is a File, consider all nodes it CONTAINS as changed
-        const fileNode = graph.nodes.find((n) => n.id === id);
+        const fileNode = graph.getNode(id);
         if (fileNode?.label === 'File') {
-            const containedEdges = graph.relationships.filter(
-                (r) => r.sourceId === id && r.type === 'CONTAINS'
+            const containedEdges = graph.getOutgoing(id).filter(
+                (r) => r.type === 'CONTAINS'
             );
             for (const e of containedEdges) {
                 if (!affected.has(e.targetId)) {
@@ -49,8 +49,8 @@ export function calculateBlastRadius(
 
         // Find nodes that depend on the current node (incoming edges)
         // i.e., relationships where targetId === current.id and type is a dependency edge
-        const incomingEdges = graph.relationships.filter(
-            (r) => r.targetId === current.id && DEPENDENCY_EDGES.has(r.type)
+        const incomingEdges = graph.getIncoming(current.id).filter(
+            (r) => DEPENDENCY_EDGES.has(r.type)
         );
 
         for (const edge of incomingEdges) {
@@ -66,7 +66,7 @@ export function calculateBlastRadius(
     let maxRisk = 0;
 
     for (const id of affected) {
-        const node = graph.nodes.find((n) => n.id === id);
+        const node = graph.getNode(id);
         if (node) {
             const cs = node.properties.complexityScore || 0;
             const hs = node.properties.hotspotScore || 0;
@@ -89,3 +89,4 @@ export function calculateBlastRadius(
         riskScore,
     };
 }
+

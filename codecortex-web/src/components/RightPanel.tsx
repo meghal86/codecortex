@@ -9,12 +9,19 @@ import { isProviderConfigured } from '../core/llm/settings-service';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { ProcessesPanel } from './ProcessesPanel';
 import { PRPulsePanel } from './PRPulsePanel';
+import { BusFactorPanel } from './BusFactorPanel';
+import { SecurityPathsPanel } from './SecurityPathsPanel';
+import { ShieldAlert } from 'lucide-react';
+
 export const RightPanel = () => {
   const {
     isRightPanelOpen,
     setRightPanelOpen,
+    rightPanelTab,
+    setRightPanelTab,
     fileContents,
     graph,
+    taintSinks,
     addCodeReference,
     // LLM / chat state
     chatMessages,
@@ -29,7 +36,6 @@ export const RightPanel = () => {
   } = useAppState();
 
   const [chatInput, setChatInput] = useState('');
-  const [activeTab, setActiveTab] = useState<'chat' | 'processes' | 'pr-pulse'>('chat');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -215,8 +221,8 @@ export const RightPanel = () => {
         <div className="flex items-center gap-1">
           {/* Chat Tab */}
           <button
-            onClick={() => setActiveTab('chat')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${activeTab === 'chat'
+            onClick={() => setRightPanelTab('chat')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${rightPanelTab === 'chat'
               ? 'bg-accent/15 text-accent'
               : 'text-text-muted hover:text-text-primary hover:bg-hover'
               }`}
@@ -227,8 +233,8 @@ export const RightPanel = () => {
 
           {/* Processes Tab */}
           <button
-            onClick={() => setActiveTab('processes')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${activeTab === 'processes'
+            onClick={() => setRightPanelTab('processes')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${rightPanelTab === 'processes'
               ? 'bg-accent/15 text-accent'
               : 'text-text-muted hover:text-text-primary hover:bg-hover'
               }`}
@@ -239,18 +245,45 @@ export const RightPanel = () => {
 
           {/* PR Pulse Tab */}
           <button
-            onClick={() => setActiveTab('pr-pulse')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${activeTab === 'pr-pulse'
+            onClick={() => setRightPanelTab('pr-pulse')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${rightPanelTab === 'pr-pulse'
               ? 'bg-accent/15 text-accent'
               : 'text-text-muted hover:text-text-primary hover:bg-hover'
               }`}
           >
             <AlertTriangle className="w-3.5 h-3.5" />
             <span>PR Pulse</span>
-            <span className="text-[10px] px-1.5 py-0.5 bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white rounded-full font-semibold">
+            <span className="hidden xl:inline-block text-[10px] px-1.5 py-0.5 bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white rounded-full font-semibold">
               NEW
             </span>
           </button>
+
+          {/* Bus Factor Tab */}
+          <button
+            onClick={() => setRightPanelTab('bus-factor')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${rightPanelTab === 'bus-factor'
+              ? 'bg-accent/15 text-accent'
+              : 'text-text-muted hover:text-text-primary hover:bg-hover'
+              }`}
+          >
+            <User className="w-3.5 h-3.5" />
+            <span className="hidden xl:inline-block">Bus Factor</span>
+          </button>
+
+          {/* Taint Tab (Conditional) */}
+          {(taintSinks.length > 0 || rightPanelTab === 'taint') && (
+            <button
+              onClick={() => setRightPanelTab('taint')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${rightPanelTab === 'taint'
+                ? 'bg-rose-500/15 text-rose-400'
+                : 'text-text-muted hover:text-text-primary hover:bg-hover'
+                }`}
+            >
+              <ShieldAlert className="w-3.5 h-3.5" />
+              <span className="hidden xl:inline-block">Security</span>
+              {taintSinks.length > 0 && <span className="w-2 h-2 rounded-full bg-rose-500" />}
+            </button>
+          )}
         </div>
 
         {/* Close button */}
@@ -264,21 +297,46 @@ export const RightPanel = () => {
       </div>
 
       {/* Processes Tab */}
-      {activeTab === 'processes' && (
+      {rightPanelTab === 'processes' && (
         <div className="flex-1 flex flex-col overflow-hidden">
           <ProcessesPanel />
         </div>
       )}
 
       {/* PR Pulse Tab */}
-      {activeTab === 'pr-pulse' && (
+      {rightPanelTab === 'pr-pulse' && (
         <div className="flex-1 flex flex-col overflow-hidden">
           <PRPulsePanel />
         </div>
       )}
 
+      {/* Bus Factor Tab */}
+      {rightPanelTab === 'bus-factor' && (
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <BusFactorPanel />
+        </div>
+      )}
+
+      {/* Taint Tab */}
+      {rightPanelTab === 'taint' && (
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <SecurityPathsPanel onFocusNode={(id) => {
+            const node = graph?.getNode(id);
+            if (node) addCodeReference({
+              filePath: node.properties.filePath || '',
+              nodeId: id,
+              label: node.label,
+              name: node.properties.name,
+              source: 'user',
+              startLine: node.properties.startLine ? node.properties.startLine - 1 : undefined,
+              endLine: node.properties.endLine ? node.properties.endLine - 1 : undefined,
+            });
+          }} />
+        </div>
+      )}
+
       {/* Chat Content - only show when chat tab is active */}
-      {activeTab === 'chat' && (
+      {rightPanelTab === 'chat' && (
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Status bar */}
           <div className="flex items-center gap-2.5 px-4 py-2 bg-[#0a0f18] border-b border-[#1e293b]">

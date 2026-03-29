@@ -14,6 +14,7 @@ import { DEFAULT_VISIBLE_EDGES, type EdgeType } from '../lib/constants';
 import type { RepoSummary, ConnectToServerResult } from '../services/server-connection';
 import { fetchRepos, connectToServer } from '../services/server-connection';
 import { getMockCommits } from '../core/ingestion/git-processor';
+import type { SinkMatch } from '../core/analysis/taint-analysis';
 
 export interface GitCommit {
   id: string;
@@ -24,7 +25,7 @@ export interface GitCommit {
 }
 
 export type ViewMode = 'onboarding' | 'loading' | 'exploring';
-export type RightPanelTab = 'code' | 'chat';
+export type RightPanelTab = 'code' | 'chat' | 'processes' | 'pr-pulse' | 'bus-factor' | 'taint';
 export type EmbeddingStatus = 'idle' | 'loading' | 'embedding' | 'indexing' | 'ready' | 'error';
 
 export interface QueryResult {
@@ -69,6 +70,10 @@ interface AppState {
   // Help modal state
   isHelpModalOpen: boolean;
   setHelpModalOpen: (open: boolean) => void;
+
+  // Health Trend modal state
+  isHealthTrendOpen: boolean;
+  setHealthTrendOpen: (open: boolean) => void;
 
   // Graph data
   graph: KnowledgeGraph | null;
@@ -118,7 +123,8 @@ interface AppState {
   // Taint Analysis
   taintedNodeIds: Set<string>;
   taintedEdgeIds: Set<string>;
-  setTaintHighlights: (nodeIds: Set<string>, edgeIds: Set<string>) => void;
+  taintSinks: SinkMatch[];
+  setTaintHighlights: (nodeIds: Set<string>, edgeIds: Set<string>, sinks: SinkMatch[]) => void;
   clearTaintHighlights: () => void;
 
   // Node animations (for MCP tool visual feedback)
@@ -173,6 +179,8 @@ interface AppState {
   setSettingsPanelOpen: (open: boolean) => void;
   isInsightsDashboardOpen: boolean;
   setInsightsDashboardOpen: (open: boolean) => void;
+  isDeadCodeOpen: boolean;
+  setDeadCodeOpen: (open: boolean) => void;
   // Phase 7: Domain View
   isDomainView: boolean;
   setDomainView: (enabled: boolean) => void;
@@ -245,6 +253,7 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
 
   // Help Modal State
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
+  const [isHealthTrendOpen, setHealthTrendOpen] = useState(false);
 
   // Query state
   const [highlightedNodeIds, setHighlightedNodeIds] = useState<Set<string>>(new Set());
@@ -278,15 +287,18 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
   // Taint Analysis
   const [taintedNodeIds, setTaintedNodeIds] = useState<Set<string>>(new Set());
   const [taintedEdgeIds, setTaintedEdgeIds] = useState<Set<string>>(new Set());
+  const [taintSinks, setTaintSinks] = useState<SinkMatch[]>([]);
 
-  const setTaintHighlights = useCallback((nodeIds: Set<string>, edgeIds: Set<string>) => {
+  const setTaintHighlights = useCallback((nodeIds: Set<string>, edgeIds: Set<string>, sinks: SinkMatch[]) => {
     setTaintedNodeIds(nodeIds);
     setTaintedEdgeIds(edgeIds);
+    setTaintSinks(sinks);
   }, []);
 
   const clearTaintHighlights = useCallback(() => {
     setTaintedNodeIds(new Set());
     setTaintedEdgeIds(new Set());
+    setTaintSinks([]);
   }, []);
 
   // Node animations (for MCP tool visual feedback)
@@ -350,6 +362,7 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
   const [llmSettings, setLLMSettings] = useState<LLMSettings>(loadSettings);
   const [isSettingsPanelOpen, setSettingsPanelOpen] = useState(false);
   const [isInsightsDashboardOpen, setInsightsDashboardOpen] = useState(true); // Open by default when exploring
+  const [isDeadCodeOpen, setDeadCodeOpen] = useState(false);
   const [isDomainView, setDomainView] = useState(false);
   const [isAgentReady, setIsAgentReady] = useState(false);
   const [isAgentInitializing, setIsAgentInitializing] = useState(false);
@@ -1176,6 +1189,8 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
     openChatPanel,
     isHelpModalOpen,
     setHelpModalOpen: setIsHelpModalOpen,
+    isHealthTrendOpen,
+    setHealthTrendOpen,
     visibleLabels,
     toggleLabelVisibility,
     visibleEdgeTypes,
@@ -1223,6 +1238,7 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
     // Taint Analysis
     taintedNodeIds,
     taintedEdgeIds,
+    taintSinks,
     setTaintHighlights,
     clearTaintHighlights,
     runPipeline,
@@ -1245,6 +1261,8 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
     setSettingsPanelOpen,
     isInsightsDashboardOpen,
     setInsightsDashboardOpen,
+    isDeadCodeOpen,
+    setDeadCodeOpen,
     isDomainView,
     setDomainView,
     isAgentReady,

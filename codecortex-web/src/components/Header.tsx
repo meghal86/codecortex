@@ -1,4 +1,4 @@
-import { Search, Settings, HelpCircle, Sparkles, ChevronDown, Activity, FileText, Layers, Network, Flame, AlertTriangle, Cpu, GitFork, Users, Zap } from 'lucide-react';
+import { Search, Settings, HelpCircle, Sparkles, ChevronDown, Activity, FileText, Layers, Network, Flame, AlertTriangle, Cpu, GitFork, Users, Zap, ShieldAlert, TrendingUp } from 'lucide-react';
 import { useAppState } from '../hooks/useAppState';
 import type { RepoSummary } from '../services/server-connection';
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
@@ -14,6 +14,7 @@ const INTEL_COMMANDS = [
   { id: 'coupling', label: '/coupling', description: 'Most tightly coupled modules', icon: GitFork, color: 'text-sky-400' },
   { id: 'orphans', label: '/orphans', description: 'Unreferenced code (potential dead code)', icon: Zap, color: 'text-violet-400' },
   { id: 'bus-factor', label: '/bus-factor', description: 'Files owned >80% by single author', icon: Users, color: 'text-pink-400' },
+  { id: 'security', label: '/security', description: 'Detect potential security sinks (SQL, FS, Auth)', icon: ShieldAlert, color: 'text-rose-400' },
 ];
 
 const NODE_TYPE_COLORS: Record<string, string> = {
@@ -49,6 +50,9 @@ export const Header = ({ onFocusNode, availableRepos = [], onSwitchRepo }: Heade
     setHelpModalOpen,
     sendChatMessage,
     setRightPanelOpen,
+    setRightPanelTab,
+    setDeadCodeOpen,
+    setHealthTrendOpen,
   } = useAppState();
 
   const [isRepoDropdownOpen, setIsRepoDropdownOpen] = useState(false);
@@ -105,18 +109,23 @@ export const Header = ({ onFocusNode, availableRepos = [], onSwitchRepo }: Heade
           .slice(0, 15);
         break;
       case 'orphans': {
-        const incoming = new Set(graph.relationships.filter(r => !r.hidden).map(r => r.targetId));
-        resultNodes = graph.nodes
-          .filter(n => !incoming.has(n.id) && !n.properties.hidden && n.label !== 'Folder' && n.label !== 'Project')
-          .slice(0, 15);
+        setDeadCodeOpen(true);
+        resultNodes = [];
         break;
       }
       case 'bus-factor':
-        resultNodes = [...graph.nodes]
-          .filter(n => (n.properties.ownership || 0) > 80)
-          .sort((a, b) => (b.properties.ownership || 0) - (a.properties.ownership || 0))
-          .slice(0, 15);
+        setRightPanelOpen(true);
+        setRightPanelTab('bus-factor');
+        resultNodes = [];
         break;
+      case 'security': {
+        setRightPanelOpen(true);
+        setRightPanelTab('taint');
+        // Simple heuristic to identify possible sinks so they appear in the result list
+        const roughPattern = /fs|file|db|query|sql|fetch|http|axios|exec|spawn|auth|password|token/i;
+        resultNodes = graph.nodes.filter(n => roughPattern.test(n.properties.name)).slice(0, 15);
+        break;
+      }
       case 'violations': {
         const violationEdges = graph.relationships.filter(r => r.violation);
         const violationNodeIds = new Set([...violationEdges.map(r => r.sourceId), ...violationEdges.map(r => r.targetId)]);
@@ -423,6 +432,10 @@ export const Header = ({ onFocusNode, availableRepos = [], onSwitchRepo }: Heade
             <FileText className="w-4 h-4" />
           </IconBtn>
         )}
+
+        <IconBtn onClick={() => setHealthTrendOpen(true)} title="Health Trends">
+          <TrendingUp className="w-4 h-4" />
+        </IconBtn>
 
         <EmbeddingStatus />
 
