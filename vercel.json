@@ -1,0 +1,7 @@
+{
+  "version": 2,
+  "buildCommand": "cd codecortex-web && npm run build",
+  "outputDirectory": "codecortex-web/dist",
+  "ignoreCommand": "git diff HEAD^ HEAD --quiet codecortex-web/",
+  "framework": "vite"
+}
