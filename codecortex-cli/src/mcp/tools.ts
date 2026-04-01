@@ -223,4 +223,94 @@ Confidence: 1.0 = certain, <0.8 = fuzzy match`,
       required: ['target', 'direction'],
     },
   },
+  {
+    name: 'check_guardrails',
+    description: `Check if a proposed change violates architectural rules.
+Returns violations, warnings, and suggestions for safe alternatives.
+
+WHEN TO USE: Before making code changes — especially when adding imports, creating dependencies, or modifying shared code. Use this to catch architectural violations before they ship.
+AFTER THIS: Review violations and fix them before committing. Use impact() to understand the full blast radius.
+
+Architectural rules are defined in .codecortex/rules.json or use built-in defaults:
+- UI layer should not directly access database layer
+- Controllers should not directly import business logic
+- No circular dependencies between modules
+- Test files should not import production code
+- Entry points should not be called by other entry points
+
+Returns:
+- violations: rules that were broken (must fix)
+- warnings: potential issues (should review)
+- suggestions: safer alternatives
+- risk_level: LOW / MEDIUM / HIGH / CRITICAL`,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        file_path: { type: 'string', description: 'File path to check (relative to repo root)' },
+        symbol_name: { type: 'string', description: 'Symbol name to check (optional)' },
+        change_type: { type: 'string', description: 'Type of change: add_import, modify_function, add_dependency, etc.', enum: ['add_import', 'modify_function', 'add_dependency', 'create_file', 'delete_file', 'rename'] },
+        target_symbol: { type: 'string', description: 'Target symbol for import/dependency (optional)' },
+        repo: { type: 'string', description: 'Repository name or path. Omit if only one repo is indexed.' },
+      },
+      required: ['file_path', 'change_type'],
+    },
+  },
+  {
+    name: 'generate_diagram',
+    description: `Generate architecture diagram from the knowledge graph.
+Returns diagram in specified format (draw.io, Mermaid, or SVG).
+
+WHEN TO USE: After indexing a repo — to visualize the architecture, understand module relationships, or create documentation.
+AFTER THIS: Review the diagram to understand the system structure. Use impact() to analyze specific components.
+
+The diagram shows:
+- Module/component relationships
+- Dependency flows
+- External integrations
+- Layer separation (UI, Service, Data, etc.)
+
+Output formats:
+- drawio: XML format for draw.io editor
+- mermaid: Markdown-based diagram syntax
+- svg: Vector graphics format`,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        format: { type: 'string', description: 'Output format: drawio, mermaid, svg (default: drawio)', enum: ['drawio', 'mermaid', 'svg'], default: 'drawio' },
+        include_external: { type: 'boolean', description: 'Include external dependencies (default: false)', default: false },
+        repo: { type: 'string', description: 'Repository name or path. Omit if only one repo is indexed.' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'detect_finops',
+    description: `Detect financial operations (FinOps) issues in the codebase.
+Returns issues related to cloud resource usage, cost optimization, and efficiency.
+
+WHEN TO USE: After indexing a repo — to identify cost optimization opportunities, inefficient resource usage, or missing cost controls.
+AFTER THIS: Review issues by severity. Use context() on affected symbols to understand the full impact.
+
+Detects:
+- Unoptimized cloud resource usage (over-provisioned instances, unused resources)
+- Missing cost tags/labels
+- Inefficient database queries (N+1 queries, missing indexes)
+- Unnecessary API calls (missing caching, redundant requests)
+- Missing caching strategies
+- Network inefficiencies (large payloads, missing compression)
+- Storage issues (unnecessary data retention, missing lifecycle policies)
+
+Returns:
+- issues: array of detected issues with severity, category, file, and suggestion
+- summary: count by severity level
+- estimated_savings: potential cost savings (if calculable)`,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        severity: { type: 'string', description: 'Filter by severity: all, critical, high, medium, low (default: all)', enum: ['all', 'critical', 'high', 'medium', 'low'], default: 'all' },
+        repo: { type: 'string', description: 'Repository name or path. Omit if only one repo is indexed.' },
+      },
+      required: [],
+    },
+  },
 ];

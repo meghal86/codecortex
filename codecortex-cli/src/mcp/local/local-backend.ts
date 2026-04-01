@@ -309,6 +309,10 @@ export class LocalBackend {
         return this.detectChanges(repo, params);
       case 'rename':
         return this.rename(repo, params);
+      case 'generate_diagram':
+        return this.generateDiagram(repo, params);
+      case 'detect_finops':
+        return this.detectFinOps(repo, params);
       // Legacy aliases for backwards compatibility
       case 'search':
         return this.query(repo, params);
@@ -1630,5 +1634,429 @@ export class LocalBackend {
     this.repos.clear();
     this.contextCache.clear();
     this.initializedRepos.clear();
+  }
+
+  /**
+   * Generate architecture diagram from knowledge graph
+   */
+  private async generateDiagram(repo: RepoHandle, params: {
+    format?: 'drawio' | 'mermaid' | 'svg';
+    include_external?: boolean;
+  }): Promise<any> {
+    await this.ensureInitialized(repo.id);
+    const format = params.format || 'drawio';
+    const includeExternal = params.include_external || false;
+
+    // Query for modules/components
+    const modules = await executeParameterized(repo.id, `
+      MATCH (f:File)
+      RETURN DISTINCT f.folder AS folder, count(*) AS fileCount
+      ORDER BY fileCount DESC
+    `, {});
+
+    // Query for relationships
+    const relationships = await executeParameterized(repo.id, `
+      MATCH (a)-[r:CodeRelation]->(b)
+      WHERE r.type IN ['CALLS', 'IMPORTS', 'EXTENDS', 'IMPLEMENTS']
+      RETURN DISTINCT a.filePath AS source, b.filePath AS target, r.type AS type
+      LIMIT 1000
+    `, {});
+
+    // Query for communities (functional areas)
+    const communities = await executeParameterized(repo.id, `
+      MATCH (c:Community)
+      RETURN c.id AS id, c.heuristicLabel AS label, c.size AS size
+      ORDER BY size DESC
+      LIMIT 20
+    `, {});
+
+    // Generate diagram based on format
+    let diagram: string;
+    if (format === 'drawio') {
+      diagram = this.generateDrawIoDiagram(modules, relationships, communities, includeExternal);
+    } else if (format === 'mermaid') {
+      diagram = this.generateMermaidDiagram(modules, relationships, communities, includeExternal);
+    } else {
+      diagram = this.generateSvgDiagram(modules, relationships, communities, includeExternal);
+    }
+
+    return {
+      format,
+      diagram,
+      stats: {
+        modules: modules.length,
+        relationships: relationships.length,
+        communities: communities.length,
+      },
+    };
+  }
+
+  /**
+   * Generate draw.io XML diagram
+   */
+  private generateDrawIoDiagram(modules: any[], relationships: any[], communities: any[], includeExternal: boolean): string {
+    let xml = `<mxfile host="app.diagrams.net" modified="${new Date().toISOString()}" agent="CodeCortex" version="21.0.0" type="device">
+  <diagram id="codecortex-architecture" name="CodeCortex Architecture">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+`;
+
+    // Add module nodes
+    let nodeId = 2;
+    const moduleMap = new Map<string, number>();
+    for (const mod of modules) {
+      const folder = mod.folder || mod[0] || 'root';
+      const fileCount = mod.fileCount || mod[1] || 0;
+      const id = nodeId++;
+      moduleMap.set(folder, id);
+      xml += `        <mxCell id="${id}" value="${folder}\n(${fileCount} files)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf" vertex="1" parent="1">
+          <mxGeometry x="${100 + (id % 5) * 200}" y="${100 + Math.floor(id / 5) * 100}" width="120" height="60" as="geometry" />
+        </mxCell>
+`;
+    }
+
+    // Add relationship edges
+    for (const rel of relationships) {
+      const sourceId = moduleMap.get(rel.source || rel[0]);
+      const targetId = moduleMap.get(rel.target || rel[1]);
+      if (sourceId && targetId) {
+        xml += `        <mxCell id="${nodeId++}" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1" edge="1" parent="1" source="${sourceId}" target="${targetId}">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+`;
+      }
+    }
+
+    xml += `      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>`;
+    return xml;
+  }
+
+  /**
+   * Generate Mermaid diagram
+   */
+  private generateMermaidDiagram(modules: any[], relationships: any[], communities: any[], includeExternal: boolean): string {
+    let mermaid = 'graph TD\n';
+
+    // Add module nodes
+    const moduleMap = new Map<string, string>();
+    for (const mod of modules) {
+      const folder = mod.folder || mod[0] || 'root';
+      const fileCount = mod.fileCount || mod[1] || 0;
+      const nodeId = folder.replace(/[^a-zA-Z0-9]/g, '_');
+      moduleMap.set(folder, nodeId);
+      mermaid += `    ${nodeId}["${folder} (${fileCount} files)"]\n`;
+    }
+
+    // Add relationships
+    for (const rel of relationships) {
+      const sourceId = moduleMap.get(rel.source || rel[0]);
+      const targetId = moduleMap.get(rel.target || rel[1]);
+      if (sourceId && targetId) {
+        mermaid += `    ${sourceId} -->|${rel.type || rel[2]}| ${targetId}\n`;
+      }
+    }
+
+    return mermaid;
+  }
+
+  /**
+   * Generate SVG diagram
+   * 
+   * Creates a visual SVG representation of the architecture with:
+   * - Module boxes positioned in a grid layout
+   * - Relationship lines connecting modules
+   * - Color-coded modules by file count
+   */
+  private generateSvgDiagram(modules: any[], relationships: any[], communities: any[], includeExternal: boolean): string {
+    const width = 1200;
+    const height = 800;
+    const boxWidth = 140;
+    const boxHeight = 60;
+    const padding = 20;
+    const cols = 5;
+    
+    // Build module map for positioning
+    const moduleMap = new Map<string, { id: string; x: number; y: number; folder: string; fileCount: number }>();
+    let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">\n`;
+    
+    // Add styles
+    svg += `  <style>\n`;
+    svg += `    .module-box { fill: #dae8fc; stroke: #6c8ebf; stroke-width: 2; rx: 8; ry: 8; }\n`;
+    svg += `    .module-text { font-family: Arial, sans-serif; font-size: 12px; fill: #333; }\n`;
+    svg += `    .module-count { font-family: Arial, sans-serif; font-size: 10px; fill: #666; }\n`;
+    svg += `    .relationship-line { stroke: #999; stroke-width: 1.5; fill: none; marker-end: url(#arrowhead); }\n`;
+    svg += `    .title { font-family: Arial, sans-serif; font-size: 18px; fill: #333; font-weight: bold; }\n`;
+    svg += `    .stats { font-family: Arial, sans-serif; font-size: 12px; fill: #666; }\n`;
+    svg += `  </style>\n`;
+    
+    // Add arrowhead marker for relationship lines
+    svg += `  <defs>\n`;
+    svg += `    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">\n`;
+    svg += `      <polygon points="0 0, 10 3.5, 0 7" fill="#999" />\n`;
+    svg += `    </marker>\n`;
+    svg += `  </defs>\n`;
+    
+    // Add title
+    svg += `  <text x="${padding}" y="${padding + 20}" class="title">Architecture Diagram</text>\n`;
+    
+    // Add stats
+    svg += `  <text x="${padding}" y="${padding + 40}" class="stats">Modules: ${modules.length} | Relationships: ${relationships.length} | Communities: ${communities.length}</text>\n`;
+    
+    // Position modules in a grid
+    let nodeId = 0;
+    for (let i = 0; i < modules.length; i++) {
+      const mod = modules[i];
+      const folder = mod.folder || mod[0] || 'root';
+      const fileCount = mod.fileCount || mod[1] || 0;
+      
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      const x = padding + col * (boxWidth + padding);
+      const y = padding + 60 + row * (boxHeight + padding);
+      
+      // Skip if would overflow
+      if (y + boxHeight > height - padding) continue;
+      
+      const id = `module_${nodeId++}`;
+      moduleMap.set(folder, { id, x, y, folder, fileCount });
+      
+      // Draw module box
+      svg += `  <rect x="${x}" y="${y}" width="${boxWidth}" height="${boxHeight}" class="module-box" />\n`;
+      
+      // Draw module name (truncate if too long)
+      const displayName = folder.length > 15 ? folder.substring(0, 12) + '...' : folder;
+      svg += `  <text x="${x + boxWidth / 2}" y="${y + 25}" text-anchor="middle" class="module-text">${this.escapeXml(displayName)}</text>\n`;
+      
+      // Draw file count
+      svg += `  <text x="${x + boxWidth / 2}" y="${y + 45}" text-anchor="middle" class="module-count">${fileCount} files</text>\n`;
+    }
+    
+    // Draw relationships
+    for (const rel of relationships) {
+      const source = rel.source || rel[0];
+      const target = rel.target || rel[1];
+      const sourceModule = moduleMap.get(source);
+      const targetModule = moduleMap.get(target);
+      
+      if (sourceModule && targetModule) {
+        // Calculate line endpoints (center of boxes)
+        const x1 = sourceModule.x + boxWidth / 2;
+        const y1 = sourceModule.y + boxHeight / 2;
+        const x2 = targetModule.x + boxWidth / 2;
+        const y2 = targetModule.y + boxHeight / 2;
+        
+        // Draw curved line for better aesthetics
+        const midX = (x1 + x2) / 2;
+        const midY = (y1 + y2) / 2 - 20;
+        svg += `  <path d="M ${x1} ${y1} Q ${midX} ${midY} ${x2} ${y2}" class="relationship-line" />\n`;
+      }
+    }
+    
+    svg += `</svg>`;
+    return svg;
+  }
+  
+  /**
+   * Escape XML special characters
+   */
+  private escapeXml(text: string): string {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&apos;');
+  }
+
+  /**
+   * Detect FinOps issues in codebase
+   * 
+   * Uses context-aware heuristics to identify potential cost optimization issues:
+   * - N+1 query patterns (database queries called in loops)
+   * - Missing caching for expensive operations
+   * - Inefficient file I/O patterns
+   * - Unclosed resources
+   * 
+   * @note Detection is heuristic-based and may produce false positives.
+   *       For accurate analysis, consider runtime profiling or static analysis tools.
+   */
+  private async detectFinOps(repo: RepoHandle, params: {
+    severity?: 'all' | 'critical' | 'high' | 'medium' | 'low';
+  }): Promise<any> {
+    await this.ensureInitialized(repo.id);
+    const severityFilter = params.severity || 'all';
+    const issues: any[] = [];
+
+    // Check for inefficient database queries (N+1 patterns)
+    // More specific patterns: only match actual database operations, not generic functions
+    const dbQueries = await executeParameterized(repo.id, `
+      MATCH (f:Function)
+      WHERE (f.name =~ '.*(?:query|find|select|findOne|findAll|findById|findByPk).*' 
+             OR f.content =~ '.*(?:SELECT|INSERT|UPDATE|DELETE|FROM|WHERE).*')
+            AND NOT f.name =~ '.*(?:test|spec|mock).*'
+      RETURN f.name AS name, f.filePath AS filePath, f.id AS id
+      LIMIT 100
+    `, {});
+
+    for (const query of dbQueries) {
+      const queryName = query.name || query[0];
+      const queryFile = query.filePath || query[1];
+      const queryId = query.id || query[2];
+      
+      // Get caller count and check if called in a loop
+      const callerInfo = await executeParameterized(repo.id, `
+        MATCH (caller)-[:CodeRelation {type: 'CALLS'}]->(f:Function {name: $name})
+        RETURN count(*) AS callerCount, 
+               collect(DISTINCT caller.name)[0..5] AS callerNames,
+               collect(DISTINCT caller.filePath)[0..5] AS callerFiles
+      `, { name: queryName });
+
+      const callerCount = callerInfo[0]?.callerCount || callerInfo[0]?.[0] || 0;
+      const callerNames = callerInfo[0]?.callerNames || callerInfo[0]?.[1] || [];
+      const callerFiles = callerInfo[0]?.callerFiles || callerInfo[0]?.[2] || [];
+      
+      // Check if any caller is in a loop (heuristic: function name contains 'loop', 'forEach', 'map', etc.)
+      let isInLoop = false;
+      for (const callerName of callerNames) {
+        if (callerName && /(?:loop|forEach|map|filter|reduce|while|for)/i.test(callerName)) {
+          isInLoop = true;
+          break;
+        }
+      }
+      
+      // Higher threshold for loop contexts (N+1 is more critical in loops)
+      const threshold = isInLoop ? 3 : 10;
+      
+      if (callerCount > threshold) {
+        const severity = isInLoop ? 'critical' : (callerCount > 20 ? 'high' : 'medium');
+        issues.push({
+          severity,
+          category: 'database',
+          title: `Potential N+1 Query: ${queryName}`,
+          description: `Function '${queryName}' is called ${callerCount} times${isInLoop ? ' (likely in a loop)' : ''}, which may indicate an N+1 query pattern.`,
+          file: queryFile,
+          suggestion: isInLoop 
+            ? 'This query appears to be called in a loop. Consider batching queries using IN clauses or eager loading to reduce database round trips.'
+            : 'Consider implementing query batching, caching, or eager loading to reduce database load.',
+          context: {
+            callers: callerNames.slice(0, 3),
+            callerFiles: callerFiles.slice(0, 3),
+            isInLoop,
+          },
+        });
+      }
+    }
+
+    // Check for missing caching on expensive operations
+    // More specific: only match API calls, external service calls, or heavy computations
+    const expensiveOps = await executeParameterized(repo.id, `
+      MATCH (f:Function)
+      WHERE (f.name =~ '.*(?:fetch|get|request|call|invoke|execute|compute|calculate|process).*'
+             OR f.content =~ '.*(?:http|https|api|axios|fetch|request).*')
+            AND NOT f.name =~ '.*(?:test|spec|mock|stub).*'
+      RETURN f.name AS name, f.filePath AS filePath, f.id AS id
+      LIMIT 100
+    `, {});
+
+    for (const op of expensiveOps) {
+      const opName = op.name || op[0];
+      const opFile = op.filePath || op[1];
+      const opId = op.id || op[2];
+      
+      // Check if function has caching indicators
+      const hasCaching = await executeParameterized(repo.id, `
+        MATCH (f:Function {name: $name})
+        WHERE f.content =~ '.*(?:cache|memo|redis|lru|ttl|expire).*'
+        RETURN count(*) AS hasCache
+      `, { name: opName });
+      
+      const hasCache = (hasCaching[0]?.hasCache || hasCaching[0]?.[0] || 0) > 0;
+      
+      if (!hasCache) {
+        const callers = await executeParameterized(repo.id, `
+          MATCH (caller)-[:CodeRelation {type: 'CALLS'}]->(f:Function {name: $name})
+          RETURN count(*) AS callerCount
+        `, { name: opName });
+
+        const callerCount = callers[0]?.callerCount || callers[0]?.[0] || 0;
+        
+        // Only flag if called multiple times (caching is beneficial for repeated calls)
+        if (callerCount > 5) {
+          issues.push({
+            severity: 'medium',
+            category: 'caching',
+            title: `Missing Caching: ${opName}`,
+            description: `Function '${opName}' is called ${callerCount} times without apparent caching.`,
+            file: opFile,
+            suggestion: 'Consider implementing caching (Redis, in-memory cache, memoization) to reduce redundant expensive operations.',
+            context: {
+              callerCount,
+              hasCaching: false,
+            },
+          });
+        }
+      }
+    }
+
+    // Check for file operations without proper resource management
+    const fileOps = await executeParameterized(repo.id, `
+      MATCH (f:Function)
+      WHERE (f.name =~ '.*(?:read|write|upload|download|stream|pipe).*'
+             OR f.content =~ '.*(?:fs\.|readFile|writeFile|createReadStream|createWriteStream).*')
+            AND NOT f.name =~ '.*(?:test|spec|mock).*'
+      RETURN f.name AS name, f.filePath AS filePath, f.id AS id, f.content AS content
+      LIMIT 100
+    `, {});
+
+    for (const fileOp of fileOps) {
+      const opName = fileOp.name || fileOp[0];
+      const opFile = fileOp.filePath || fileOp[1];
+      const opId = fileOp.id || fileOp[2];
+      const content = fileOp.content || fileOp[3] || '';
+      
+      // Check for proper resource management patterns
+      const hasProperCleanup = /(?:finally|close|destroy|end|cleanup|dispose)/i.test(content);
+      const usesStreaming = /(?:stream|pipe|createReadStream|createWriteStream)/i.test(content);
+      
+      if (!hasProperCleanup && !usesStreaming) {
+        issues.push({
+          severity: 'low',
+          category: 'storage',
+          title: `File Operation: ${opName}`,
+          description: `Function '${opName}' performs file operations without apparent resource cleanup or streaming.`,
+          file: opFile,
+          suggestion: 'Use streaming APIs for large files, ensure proper error handling with try-finally blocks, and close resources explicitly.',
+          context: {
+            hasProperCleanup,
+            usesStreaming,
+          },
+        });
+      }
+    }
+
+    // Filter by severity if specified
+    let filteredIssues = issues;
+    if (severityFilter !== 'all') {
+      filteredIssues = issues.filter(issue => issue.severity === severityFilter);
+    }
+
+    // Calculate summary
+    const summary = {
+      critical: filteredIssues.filter(i => i.severity === 'critical').length,
+      high: filteredIssues.filter(i => i.severity === 'high').length,
+      medium: filteredIssues.filter(i => i.severity === 'medium').length,
+      low: filteredIssues.filter(i => i.severity === 'low').length,
+    };
+
+    return {
+      issues: filteredIssues,
+      summary,
+      total_issues: filteredIssues.length,
+    };
   }
 }

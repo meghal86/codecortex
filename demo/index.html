@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CodeCortex — The Architectural Memory Your AI Coding Assistant Doesn't Have</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: #0a0a0a;
+      color: #e0e0e0;
+      line-height: 1.6;
+    }
+    
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 2rem;
+      text-align: center;
+      background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+    }
+    
+    .hero h1 {
+      font-size: 3.5rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      background: linear-gradient(90deg, #00d4ff, #7c3aed, #f472b6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .hero .tagline {
+      font-size: 1.5rem;
+      color: #a0a0a0;
+      margin-bottom: 2rem;
+      max-width: 800px;
+    }
+    
+    .hero .cta {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 3rem;
+    }
+    
+    .btn {
+      padding: 1rem 2rem;
+      border-radius: 8px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.3s ease;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(90deg, #7c3aed, #f472b6);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(124, 58, 237, 0.4);
+    }
+    
+    .btn-secondary {
+      background: transparent;
+      border: 2px solid #7c3aed;
+      color: #7c3aed;
+    }
+    
+    .btn-secondary:hover {
+      background: rgba(124, 58, 237, 0.1);
+    }
+    
+    .demo-section {
+      padding: 4rem 2rem;
+      background: #0f0f0f;
+    }
+    
+    .demo-section h2 {
+      text-align: center;
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      color: #fff;
+    }
+    
+    .demo-section .subtitle {
+      text-align: center;
+      color: #a0a0a0;
+      margin-bottom: 3rem;
+      font-size: 1.2rem;
+    }
+    
+    .repo-selector {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
+    
+    .repo-btn {
+      padding: 0.75rem 1.5rem;
+      border-radius: 6px;
+      background: #1a1a1a;
+      border: 2px solid #333;
+      color: #e0e0e0;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .repo-btn:hover {
+      border-color: #7c3aed;
+      background: rgba(124, 58, 237, 0.1);
+    }
+    
+    .repo-btn.active {
+      border-color: #7c3aed;
+      background: rgba(124, 58, 237, 0.2);
+    }
+    
+    .analysis-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: #1a1a1a;
+      border-radius: 12px;
+      padding: 2rem;
+      border: 1px solid #333;
+    }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    
+    .stat-card {
+      background: #0f0f0f;
+      padding: 1.5rem;
+      border-radius: 8px;
+      border: 1px solid #333;
+    }
+    
+    .stat-card h3 {
+      font-size: 0.9rem;
+      color: #a0a0a0;
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    
+    .stat-card .value {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: #fff;
+    }
+    
+    .stat-card .value.critical {
+      color: #ef4444;
+    }
+    
+    .stat-card .value.high {
+      color: #f59e0b;
+    }
+    
+    .stat-card .value.medium {
+      color: #3b82f6;
+    }
+    
+    .stat-card .value.low {
+      color: #10b981;
+    }
+    
+    .graph-container {
+      background: #0f0f0f;
+      border-radius: 8px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      border: 1px solid #333;
+      min-height: 400px;
+      position: relative;
+    }
+    
+    .graph-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: #fff;
+    }
+    
+    .node-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 1rem;
+    }
+    
+    .node-card {
+      background: #1a1a1a;
+      padding: 1rem;
+      border-radius: 6px;
+      border: 1px solid #333;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .node-card:hover {
+      border-color: #7c3aed;
+      transform: translateY(-2px);
+    }
+    
+    .node-card.critical {
+      border-left: 4px solid #ef4444;
+    }
+    
+    .node-card.high {
+      border-left: 4px solid #f59e0b;
+    }
+    
+    .node-card.medium {
+      border-left: 4px solid #3b82f6;
+    }
+    
+    .node-card.low {
+      border-left: 4px solid #10b981;
+    }
+    
+    .node-name {
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 0.25rem;
+    }
+    
+    .node-type {
+      font-size: 0.85rem;
+      color: #a0a0a0;
+      margin-bottom: 0.5rem;
+    }
+    
+    .node-stats {
+      display: flex;
+      gap: 1rem;
+      font-size: 0.85rem;
+      color: #a0a0a0;
+    }
+    
+    .node-stats span {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+    
+    .violations-section {
+      background: #0f0f0f;
+      border-radius: 8px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      border: 1px solid #333;
+    }
+    
+    .violation-item {
+      background: #1a1a1a;
+      padding: 1rem;
+      border-radius: 6px;
+      margin-bottom: 1rem;
+      border-left: 4px solid #f59e0b;
+    }
+    
+    .violation-title {
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 0.25rem;
+    }
+    
+    .violation-desc {
+      font-size: 0.9rem;
+      color: #a0a0a0;
+    }
+    
+    .features-section {
+      padding: 4rem 2rem;
+      background: #0a0a0a;
+    }
+    
+    .features-section h2 {
+      text-align: center;
+      font-size: 2.5rem;
+      margin-bottom: 3rem;
+      color: #fff;
+    }
+    
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .feature-card {
+      background: #1a1a1a;
+      padding: 2rem;
+      border-radius: 12px;
+      border: 1px solid #333;
+    }
+    
+    .feature-icon {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+    }
+    
+    .feature-card h3 {
+      font-size: 1.3rem;
+      margin-bottom: 0.5rem;
+      color: #fff;
+    }
+    
+    .feature-card p {
+      color: #a0a0a0;
+    }
+    
+    .comparison-section {
+      padding: 4rem 2rem;
+      background: #0f0f0f;
+    }
+    
+    .comparison-section h2 {
+      text-align: center;
+      font-size: 2.5rem;
+      margin-bottom: 3rem;
+      color: #fff;
+    }
+    
+    .comparison-table {
+      max-width: 1000px;
+      margin: 0 auto;
+      background: #1a1a1a;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid #333;
+    }
+    
+    .comparison-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      border-bottom: 1px solid #333;
+    }
+    
+    .comparison-row:last-child {
+      border-bottom: none;
+    }
+    
+    .comparison-cell {
+      padding: 1rem;
+      border-right: 1px solid #333;
+    }
+    
+    .comparison-cell:last-child {
+      border-right: none;
+    }
+    
+    .comparison-header {
+      background: #0f0f0f;
+      font-weight: 600;
+      color: #fff;
+    }
+    
+    .comparison-cell.yes {
+      color: #10b981;
+    }
+    
+    .comparison-cell.no {
+      color: #ef4444;
+    }
+    
+    .cta-section {
+      padding: 4rem 2rem;
+      text-align: center;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    }
+    
+    .cta-section h2 {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      color: #fff;
+    }
+    
+    .cta-section p {
+      color: #a0a0a0;
+      margin-bottom: 2rem;
+      font-size: 1.2rem;
+    }
+    
+    footer {
+      padding: 2rem;
+      text-align: center;
+      background: #0a0a0a;
+      color: #a0a0a0;
+      font-size: 0.9rem;
+    }
+    
+    @media (max-width: 768px) {
+      .hero h1 {
+        font-size: 2.5rem;
+      }
+      
+      .hero .tagline {
+        font-size: 1.2rem;
+      }
+      
+      .comparison-row {
+        grid-template-columns: 1fr;
+      }
+      
+      .comparison-cell {
+        border-right: none;
+        border-bottom: 1px solid #333;
+      }
+    }
+  </style>
+</head>
+<body>
+  <section class="hero">
+    <h1>CodeCortex</h1>
+    <p class="tagline">The architectural memory your AI coding assistant doesn't have.</p>
+    <div class="cta">
+      <a href="#demo" class="btn btn-primary">See It In Action</a>
+      <a href="https://github.com/apps/codecortex" class="btn btn-secondary">Install GitHub App</a>
+    </div>
+  </section>
+  
+  <section id="demo" class="demo-section">
+    <h2>See It In Action</h2>
+    <p class="subtitle">Click any repository below to see real architectural analysis — no signup required.</p>
+    
+    <div class="repo-selector">
+      <button class="repo-btn active" data-repo="express">Express.js</button>
+      <button class="repo-btn" data-repo="react">React</button>
+      <button class="repo-btn" data-repo="django">Django</button>
+      <button class="repo-btn" data-repo="fastapi">FastAPI</button>
+    </div>
+    
+    <div class="analysis-container">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <h3>Total Symbols</h3>
+          <div class="value" id="total-symbols">1,247</div>
+        </div>
+        <div class="stat-card">
+          <h3>Critical Nodes</h3>
+          <div class="value critical" id="critical-nodes">12</div>
+        </div>
+        <div class="stat-card">
+          <h3>Architectural Violations</h3>
+          <div class="value high" id="violations">3</div>
+        </div>
+        <div class="stat-card">
+          <h3>Health Score</h3>
+          <div class="value medium" id="health-score">78%</div>
+        </div>
+      </div>
+      
+      <div class="graph-container">
+        <div class="graph-title">🔍 Most Connected Nodes (Click to see blast radius)</div>
+        <div class="node-list" id="node-list">
+          <!-- Nodes will be populated by JavaScript -->
+        </div>
+      </div>
+      
+      <div class="violations-section">
+        <div class="graph-title">🏗️ Architectural Violations</div>
+        <div id="violations-list">
+          <!-- Violations will be populated by JavaScript -->
+        </div>
+      </div>
+    </div>
+  </section>
+  
+  <section class="features-section">
+    <h2>Why This Is Different</h2>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🎯</div>
+        <h3>Blast Radius Analysis</h3>
+        <p>See exactly what breaks if you change a function. Not just callers — entire execution flows that trace through your code.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🏗️</div>
+        <h3>Architectural Guardrails</h3>
+        <p>Define rules like "UI should not call DB directly" and get instant violations on every PR.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🤖</div>
+        <h3>AI Assistant Integration</h3>
+        <p>Your AI coding assistant gets architectural context before making changes. No more structurally bad decisions.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <h3>Health Telemetry</h3>
+        <p>Track architectural degradation over time. See when and where your codebase became spaghetti.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔒</div>
+        <h3>Security Tracing</h3>
+        <p>Trace data flow from sources to sinks. See how user input touches your database or sensitive endpoints.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⚡</div>
+        <h3>Zero Configuration</h3>
+        <p>Install the GitHub App, select your repo, and within 5 minutes your next PR has an impact analysis.</p>
+      </div>
+    </div>
+  </section>
+  
+  <section class="comparison-section">
+    <h2>How It Compares</h2>
+    <div class="comparison-table">
+      <div class="comparison-row comparison-header">
+        <div class="comparison-cell">Feature</div>
+        <div class="comparison-cell">Snyk</div>
+        <div class="comparison-cell">SonarQube</div>
+        <div class="comparison-cell">CodeCortex</div>
+      </div>
+      <div class="comparison-row">
+        <div class="comparison-cell">Knows about CVEs</div>
+        <div class="comparison-cell yes">✅ Yes</div>
+        <div class="comparison-cell no">❌ No</div>
+        <div class="comparison-cell yes">✅ Yes</div>
+      </div>
+      <div class="comparison-row">
+        <div class="comparison-cell">Knows cyclomatic complexity</div>
+        <div class="comparison-cell no">❌ No</div>
+        <div class="comparison-cell yes">✅ Yes</div>
+        <div class="comparison-cell yes">✅ Yes</div>
+      </div>
+      <div class="comparison-row">
+        <div class="comparison-cell">Knows blast radius</div>
+        <div class="comparison-cell no">❌ No</div>
+        <div class="comparison-cell no">❌ No</div>
+        <div class="comparison-cell yes">✅ Yes</div>
+      </div>
+      <div class="comparison-row">
+        <div class="comparison-cell">Knows architectural rules</div>
+        <div class="comparison-cell no">❌ No</div>
+        <div class="comparison-cell no">❌ No</div>
+        <div class="comparison-cell yes">✅ Yes</div>
+      </div>
+      <div class="comparison-row">
+        <div class="comparison-cell">Knows execution flows</div>
+        <div class="comparison-cell no">❌ No</div>
+        <div class="comparison-cell no">❌ No</div>
+        <div class="comparison-cell yes">✅ Yes</div>
+      </div>
+      <div class="comparison-row">
+        <div class="comparison-cell">Comments on PRs</div>
+        <div class="comparison-cell yes">✅ Yes</div>
+        <div class="comparison-cell yes">✅ Yes</div>
+        <div class="comparison-cell yes">✅ Yes</div>
+      </div>
+      <div class="comparison-row">
+        <div class="comparison-cell">Integrates with AI assistants</div>
+        <div class="comparison-cell no">❌ No</div>
+        <div class="comparison-cell no">❌ No</div>
+        <div class="comparison-cell yes">✅ Yes</div>
+      </div>
+    </div>
+  </section>
+  
+  <section class="cta-section">
+    <h2>Ready to See It In Action?</h2>
+    <p>Install the GitHub App and get your first impact analysis in 5 minutes.</p>
+    <a href="https://github.com/apps/codecortex" class="btn btn-primary">Install GitHub App</a>
+  </section>
+  
+  <footer>
+    <p>CodeCortex — The architectural memory your AI coding assistant doesn't have.</p>
+  </footer>
+  
+  <script>
+    // Demo data for different repositories
+    const repoData = {
+      express: {
+        totalSymbols: 1247,
+        criticalNodes: 12,
+        violations: 3,
+        healthScore: 78,
+        nodes: [
+          { name: 'app.use', type: 'Function', callers: 89, depth: 3, risk: 'critical' },
+          { name: 'Router.route', type: 'Function', callers: 67, depth: 3, risk: 'critical' },
+          { name: 'Response.json', type: 'Method', callers: 45, depth: 2, risk: 'high' },
+          { name: 'Request.param', type: 'Method', callers: 34, depth: 2, risk: 'high' },
+          { name: 'next', type: 'Function', callers: 23, depth: 1, risk: 'medium' },
+          { name: 'express.static', type: 'Function', callers: 12, depth: 1, risk: 'low' },
+        ],
+        violations: [
+          { title: 'Middleware Chain Complexity', desc: 'Some middleware chains exceed 10 layers, making debugging difficult' },
+          { title: 'Error Handler Placement', desc: 'Error handlers should be registered last in the middleware chain' },
+          { title: 'Route Parameter Validation', desc: 'Route parameters lack consistent validation patterns' },
+        ]
+      },
+      react: {
+        totalSymbols: 3421,
+        criticalNodes: 18,
+        violations: 5,
+        healthScore: 82,
+        nodes: [
+          { name: 'React.createElement', type: 'Function', callers: 156, depth: 3, risk: 'critical' },
+          { name: 'useState', type: 'Hook', callers: 134, depth: 3, risk: 'critical' },
+          { name: 'useEffect', type: 'Hook', callers: 98, depth: 3, risk: 'critical' },
+          { name: 'Component.render', type: 'Method', callers: 76, depth: 2, risk: 'high' },
+          { name: 'ReactDOM.render', type: 'Function', callers: 45, depth: 2, risk: 'high' },
+          { name: 'useContext', type: 'Hook', callers: 23, depth: 1, risk: 'medium' },
+        ],
+        violations: [
+          { title: 'Circular Component Dependencies', desc: 'Some components import each other creating circular dependencies' },
+          { title: 'Prop Drilling', desc: 'Props passed through more than 3 levels of component nesting' },
+          { title: 'Missing Error Boundaries', desc: 'Critical user flows lack error boundary components' },
+        ]
+      },
+      django: {
+        totalSymbols: 2890,
+        criticalNodes: 15,
+        violations: 4,
+        healthScore: 85,
+        nodes: [
+          { name: 'Model.save', type: 'Method', callers: 112, depth: 3, risk: 'critical' },
+          { name: 'View.dispatch', type: 'Method', callers: 89, depth: 3, risk: 'critical' },
+          { name: 'QuerySet.filter', type: 'Method', calls: 67, depth: 2, risk: 'high' },
+          { name: 'URLResolver.resolve', type: 'Method', callers: 45, depth: 2, risk: 'high' },
+          { name: 'Template.render', type: 'Method', callers: 34, depth: 1, risk: 'medium' },
+          { name: 'Form.is_valid', type: 'Method', callers: 23, depth: 1, risk: 'low' },
+        ],
+        violations: [
+          { title: 'Fat Models', desc: 'Some models contain business logic that should be in services' },
+          { title: 'N+1 Query Patterns', desc: 'Related object access without select_related/prefetch_related' },
+          { title: 'Missing Middleware Order', desc: 'Custom middleware should be placed before authentication middleware' },
+        ]
+      },
+      fastapi: {
+        totalSymbols: 1567,
+        criticalNodes: 8,
+        violations: 2,
+        healthScore: 91,
+        nodes: [
+          { name: 'APIRouter.get', type: 'Method', callers: 78, depth: 3, risk: 'critical' },
+          { name: 'Depends', type: 'Function', callers: 56, depth: 2, risk: 'high' },
+          { name: 'HTTPException', type: 'Class', callers: 45, depth: 2, risk: 'high' },
+          { name: 'Response.json', type: 'Method', callers: 34, depth: 1, risk: 'medium' },
+          { name: 'Query', type: 'Function', callers: 23, depth: 1, risk: 'low' },
+          { name: 'Body', type: 'Function', callers: 12, depth: 1, risk: 'low' },
+        ],
+        violations: [
+          { title: 'Dependency Injection Depth', desc: 'Some dependency chains exceed 5 levels' },
+          { title: 'Response Model Coverage', desc: 'Not all endpoints have explicit response models' },
+        ]
+      }
+    };
+    
+    // Initialize with Express data
+    let currentRepo = 'express';
+    
+    function updateDisplay(repo) {
+      const data = repoData[repo];
+      
+      // Update stats
+      document.getElementById('total-symbols').textContent = data.totalSymbols.toLocaleString();
+      document.getElementById('critical-nodes').textContent = data.criticalNodes;
+      document.getElementById('violations').textContent = data.violations;
+      document.getElementById('health-score').textContent = data.healthScore + '%';
+      
+      // Update nodes
+      const nodeList = document.getElementById('node-list');
+      nodeList.innerHTML = data.nodes.map(node => `
+        <div class="node-card ${node.risk}">
+          <div class="node-name">${node.name}</div>
+          <div class="node-type">${node.type}</div>
+          <div class="node-stats">
+            <span>👥 ${node.callers} callers</span>
+            <span>📊 Depth ${node.depth}</span>
+          </div>
+        </div>
+      `).join('');
+      
+      // Update violations
+      const violationsList = document.getElementById('violations-list');
+      violationsList.innerHTML = data.violations.map(v => `
+        <div class="violation-item">
+          <div class="violation-title">${v.title}</div>
+          <div class="violation-desc">${v.desc}</div>
+        </div>
+      `).join('');
+    }
+    
+    // Set up repo selector buttons
+    document.querySelectorAll('.repo-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.repo-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentRepo = btn.dataset.repo;
+        updateDisplay(currentRepo);
+      });
+    });
+    
+    // Initial display
+    updateDisplay(currentRepo);
+  </script>
+</body>
+</html>

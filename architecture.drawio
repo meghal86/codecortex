@@ -1,0 +1,205 @@
+<mxfile host="app.diagrams.net" modified="2024-03-31T20:37:00.000Z" agent="CodeCortex" version="21.0.0" type="device">
+  <diagram id="codecortex-architecture" name="CodeCortex Architecture">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- Title -->
+        <mxCell id="title" value="CodeCortex Architecture" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=24;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="400" y="20" width="300" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- Core Engine Section -->
+        <mxCell id="core-section" value="Core Engine" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="400" y="100" width="300" height="400" as="geometry" />
+        </mxCell>
+        
+        <!-- KuzuDB -->
+        <mxCell id="kuzudb" value="KuzuDB&#xa;(Knowledge Graph)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656" vertex="1" parent="1">
+          <mxGeometry x="450" y="140" width="200" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Tree-sitter Parser -->
+        <mxCell id="tree-sitter" value="Tree-sitter Parser&#xa;(Code Analysis)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656" vertex="1" parent="1">
+          <mxGeometry x="450" y="220" width="200" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- MCP Server -->
+        <mxCell id="mcp-server" value="MCP Server&#xa;(Model Context Protocol)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656" vertex="1" parent="1">
+          <mxGeometry x="450" y="300" width="200" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Guardrails Engine -->
+        <mxCell id="guardrails" value="Guardrails Engine&#xa;(Architectural Rules)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656" vertex="1" parent="1">
+          <mxGeometry x="450" y="380" width="200" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- CLI -->
+        <mxCell id="cli" value="CLI&#xa;(Command Line Interface)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656" vertex="1" parent="1">
+          <mxGeometry x="450" y="460" width="200" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Deployment Options Section -->
+        <mxCell id="deployment-section" value="Deployment Options" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="50" y="100" width="300" height="400" as="geometry" />
+        </mxCell>
+        
+        <!-- GitHub App -->
+        <mxCell id="github-app" value="GitHub App&#xa;(Zero Config)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6" vertex="1" parent="1">
+          <mxGeometry x="100" y="140" width="200" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- VS Code Extension -->
+        <mxCell id="vscode-ext" value="VS Code Extension&#xa;(IDE Integration)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6" vertex="1" parent="1">
+          <mxGeometry x="100" y="220" width="200" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- CLI + MCP -->
+        <mxCell id="cli-mcp" value="CLI + MCP&#xa;(Local Development)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6" vertex="1" parent="1">
+          <mxGeometry x="100" y="300" width="200" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Web UI -->
+        <mxCell id="web-ui" value="Web UI&#xa;(Browser-based)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6" vertex="1" parent="1">
+          <mxGeometry x="100" y="380" width="200" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- GitHub Actions -->
+        <mxCell id="github-actions" value="GitHub Actions&#xa;(CI/CD)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6" vertex="1" parent="1">
+          <mxGeometry x="100" y="460" width="200" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- External Integrations Section -->
+        <mxCell id="external-section" value="External Integrations" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="750" y="100" width="300" height="400" as="geometry" />
+        </mxCell>
+        
+        <!-- AI Agents -->
+        <mxCell id="ai-agents" value="AI Agents&#xa;(Cursor, Claude Code,&#xa;Windsurf, etc.)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00" vertex="1" parent="1">
+          <mxGeometry x="800" y="140" width="200" height="70" as="geometry" />
+        </mxCell>
+        
+        <!-- GitHub API -->
+        <mxCell id="github-api" value="GitHub API&#xa;(REST/GraphQL)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00" vertex="1" parent="1">
+          <mxGeometry x="800" y="230" width="200" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Code Repositories -->
+        <mxCell id="repos" value="Code Repositories&#xa;(Git)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00" vertex="1" parent="1">
+          <mxGeometry x="800" y="310" width="200" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Probot -->
+        <mxCell id="probot" value="Probot&#xa;(GitHub App Framework)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00" vertex="1" parent="1">
+          <mxGeometry x="800" y="390" width="200" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Connections -->
+        <!-- GitHub App to Core -->
+        <mxCell id="edge1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0" edge="1" parent="1" source="github-app" target="mcp-server">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- VS Code to Core -->
+        <mxCell id="edge2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0" edge="1" parent="1" source="vscode-ext" target="mcp-server">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- CLI+MCP to Core -->
+        <mxCell id="edge3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0" edge="1" parent="1" source="cli-mcp" target="cli">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Web UI to Core -->
+        <mxCell id="edge4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0" edge="1" parent="1" source="web-ui" target="mcp-server">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- GitHub Actions to Core -->
+        <mxCell id="edge5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0" edge="1" parent="1" source="github-actions" target="cli">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- MCP to KuzuDB -->
+        <mxCell id="edge6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0" edge="1" parent="1" source="mcp-server" target="kuzudb">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- MCP to Guardrails -->
+        <mxCell id="edge7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0" edge="1" parent="1" source="mcp-server" target="guardrails">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- CLI to MCP -->
+        <mxCell id="edge8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0" edge="1" parent="1" source="cli" target="mcp-server">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Tree-sitter to KuzuDB -->
+        <mxCell id="edge9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0" edge="1" parent="1" source="tree-sitter" target="kuzudb">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- AI Agents to MCP -->
+        <mxCell id="edge10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0" edge="1" parent="1" source="ai-agents" target="mcp-server">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- GitHub App to GitHub API -->
+        <mxCell id="edge11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0" edge="1" parent="1" source="github-app" target="github-api">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- GitHub API to Repos -->
+        <mxCell id="edge12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0" edge="1" parent="1" source="github-api" target="repos">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- GitHub App to Probot -->
+        <mxCell id="edge13" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0" edge="1" parent="1" source="github-app" target="probot">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Legend -->
+        <mxCell id="legend" value="Legend" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="50" y="550" width="60" height="20" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="legend-core" value="Core Engine" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf" vertex="1" parent="1">
+          <mxGeometry x="50" y="580" width="100" height="30" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="legend-deploy" value="Deployment" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366" vertex="1" parent="1">
+          <mxGeometry x="160" y="580" width="100" height="30" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="legend-external" value="External" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450" vertex="1" parent="1">
+          <mxGeometry x="270" y="580" width="100" height="30" as="geometry" />
+        </mxCell>
+        
+        <!-- Data Flow Labels -->
+        <mxCell id="flow1" value="MCP Protocol" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="250" y="165" width="80" height="20" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow2" value="HTTP/REST" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="250" y="245" width="80" height="20" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow3" value="CLI Commands" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="250" y="325" width="80" height="20" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow4" value="Web API" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="250" y="405" width="80" height="20" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow5" value="Shell Exec" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="250" y="485" width="80" height="20" as="geometry" />
+        </mxCell>
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,4 +1,6 @@
 # CodeCortex
+**The architectural memory your AI coding assistant doesn't have.**
+
 ⚠️ Important Notice:** CodeCortex has NO official cryptocurrency, token, or coin. Any token/coin using the CodeCortex name on Pump.fun or any other platform is **not affiliated with, endorsed by, or created by** this project or its maintainers. Do not purchase any cryptocurrency claiming association with CodeCortex.
 
 <div align="center">
@@ -21,9 +23,9 @@
 
 </div>
 
-**Building nervous system for agent context.**
+**The architectural conscience for the AI coding era.**
 
-Indexes any codebase into a knowledge graph — every dependency, call chain, cluster, and execution flow — then exposes it through smart tools so AI agents never miss code.
+AI coding tools make developers write code 10x faster, but they have zero understanding of your architectural decisions. CodeCortex gives them that understanding — every dependency, call chain, cluster, and execution flow — so they stop making structurally bad decisions that look syntactically fine.
 
 
 
@@ -43,19 +45,45 @@ https://github.com/user-attachments/assets/172685ba-8e54-4ea7-9ad1-e31a3398da72
 [![Star History Chart](https://api.star-history.com/svg?repos=abhigyanpatwari/CodeCortex&type=date&legend=top-left)](https://www.star-history.com/#abhigyanpatwari/CodeCortex&type=date&legend=top-left)
 
 
-## Two Ways to Use CodeCortex
+## Three Ways to Use CodeCortex
 
-|                   | **CLI + MCP**                                            | **Web UI**                                             |
-| ----------------- | -------------------------------------------------------------- | ------------------------------------------------------------ |
-| **What**    | Index repos locally, connect AI agents via MCP                 | Visual graph explorer + AI chat in browser                   |
-| **For**     | Daily development with Cursor, Claude Code, Windsurf, OpenCode | Quick exploration, demos, one-off analysis                   |
-| **Scale**   | Full repos, any size                                           | Limited by browser memory (~5k files), or unlimited via backend mode |
-| **Install** | `npm install -g codecortex`                                    | No install —[codecortex.vercel.app](https://codecortex.vercel.app) |
-| **Storage** | KuzuDB native (fast, persistent)                               | KuzuDB WASM (in-memory, per session)                         |
-| **Parsing** | Tree-sitter native bindings                                    | Tree-sitter WASM                                             |
-| **Privacy** | Everything local, no network                                   | Everything in-browser, no server                             |
+|                   | **GitHub App**                                       | **CLI + MCP**                                            | **Web UI**                                             |
+| ----------------- | ---------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------ |
+| **What**    | Auto-analyze every PR with zero config               | Index repos locally, connect AI agents via MCP                 | Visual graph explorer + AI chat in browser                   |
+| **For**     | Teams wanting instant architectural guardrails        | Daily development with Cursor, Claude Code, Windsurf, OpenCode | Quick exploration, demos, one-off analysis                   |
+| **Scale**   | Any repo size                                        | Full repos, any size                                           | Limited by browser memory (~5k files), or unlimited via backend mode |
+| **Install** | [Install GitHub App](https://github.com/apps/codecortex) | `npm install -g codecortex`                                    | No install —[codecortex.vercel.app](https://codecortex.vercel.app) |
+| **Storage** | Cloud (your repo data stays in your GitHub)          | KuzuDB native (fast, persistent)                               | KuzuDB WASM (in-memory, per session)                         |
+| **Parsing** | Tree-sitter native                                   | Tree-sitter native bindings                                    | Tree-sitter WASM                                             |
+| **Privacy** | Your code never leaves GitHub                        | Everything local, no network                                   | Everything in-browser, no server                             |
+
+> **The sticky loop:** CodeCortex inserts into the workflow you already have — GitHub (comments on every PR), IDE (blast radius hints), and AI assistant (pre-tool-use hooks).
 
 > **Bridge mode:** `codecortex serve` connects the two — the web UI auto-detects the local server and can browse all your CLI-indexed repos without re-uploading or re-indexing.
+
+---
+
+## GitHub App (Zero Configuration)
+
+**The "never seen this before" moment:** A developer opens a GitHub PR, and they see a comment that says:
+
+> "This change touches `AuthService` which is the most connected node in your system — 31 functions across 6 modules depend on it. Your architectural rule 'UI layer should not call DB layer directly' has been violated in 2 places. Estimated risk: High."
+
+That developer stops. They read it. They think "how did it know that?" Then they fix the violation before it gets to code review.
+
+### Setup
+
+1. Go to [github.com/apps/codecortex](https://github.com/apps/codecortex)
+2. Click "Install"
+3. Select the repositories you want to analyze
+4. That's it! Every PR will now get an impact analysis comment
+
+### What It Analyzes
+
+- **Blast Radius** — Which symbols are highly connected (critical nodes)
+- **Architectural Violations** — UI layer directly accessing database, circular dependencies
+- **Affected Processes** — Which execution flows trace through your changes
+- **Risk Level** — Overall impact assessment (LOW / MEDIUM / HIGH / CRITICAL)
 
 ---
 
@@ -268,9 +296,15 @@ Tools like **Cursor**, **Claude Code**, **Cline**, **Roo Code**, and **Windsurf*
 
 **What happens:**
 
-1. AI edits `UserService.validate()`
-2. Doesn't know 47 functions depend on its return type
+1. AI edits `AuthService.validateToken()`
+2. Doesn't know 47 other services depend on it
 3. **Breaking changes ship**
+
+**The real moat:** Every tool in the market operates at one of two levels — micro (lint rules, security vulnerabilities) or abstract (documentation, diagrams). Nobody operates at the layer in between: **the live, relational understanding of how your code is actually connected right now, and what breaks when something changes.**
+
+Snyk knows if your npm package has a CVE. It has no idea that removing `validateInput` breaks 23 downstream callers across 5 modules. SonarQube can tell you a function has cyclomatic complexity of 47. It cannot tell you that refactoring it will cascade through your entire authentication flow.
+
+**CodeCortex fills that gap.**
 
 ### Traditional Graph RAG vs CodeCortex
 

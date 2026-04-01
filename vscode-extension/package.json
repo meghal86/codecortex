@@ -1,0 +1,128 @@
+{
+  "name": "codecortex-vscode",
+  "displayName": "CodeCortex — Architectural Intelligence",
+  "description": "Blast radius analysis and architectural guardrails for your codebase",
+  "version": "1.0.0",
+  "publisher": "codecortex",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Linters",
+    "Visualization",
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "codecortex.analyzeImpact",
+        "title": "CodeCortex: Analyze Impact",
+        "icon": "$(search)"
+      },
+      {
+        "command": "codecortex.checkGuardrails",
+        "title": "CodeCortex: Check Guardrails",
+        "icon": "$(shield)"
+      },
+      {
+        "command": "codecortex.showBlastRadius",
+        "title": "CodeCortex: Show Blast Radius",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "codecortex.detectFinOps",
+        "title": "CodeCortex: Detect FinOps Issues",
+        "icon": "$(symbol-misc)"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "codecortex",
+          "title": "CodeCortex",
+          "icon": "$(graph)"
+        }
+      ]
+    },
+    "views": {
+      "codecortex": [
+        {
+          "type": "webview",
+          "id": "codecortex.blastRadius",
+          "name": "Blast Radius"
+        },
+        {
+          "type": "tree",
+          "id": "codecortex.violations",
+          "name": "Architectural Violations"
+        },
+        {
+          "type": "tree",
+          "id": "codecortex.finops",
+          "name": "FinOps Issues"
+        }
+      ]
+    },
+    "menus": {
+      "editor/context": [
+        {
+          "command": "codecortex.analyzeImpact",
+          "when": "editorTextFocus",
+          "group": "codecortex"
+        },
+        {
+          "command": "codecortex.checkGuardrails",
+          "when": "editorTextFocus",
+          "group": "codecortex"
+        },
+        {
+          "command": "codecortex.detectFinOps",
+          "when": "editorTextFocus",
+          "group": "codecortex"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "codecortex.showBlastRadius",
+          "when": "editorTextFocus",
+          "group": "navigation"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "CodeCortex",
+      "properties": {
+        "codecortex.serverUrl": {
+          "type": "string",
+          "default": "http://localhost:4747",
+          "description": "CodeCortex server URL"
+        },
+        "codecortex.autoAnalyze": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically analyze impact when opening files"
+        },
+        "codecortex.showInlineHints": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show blast radius hints inline in the editor"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "test": "node ./test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.3.0"
+  }
+}

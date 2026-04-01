@@ -118,3 +118,71 @@ export async function cypherCommand(query: string, options?: {
   });
   output(result);
 }
+
+export async function detectImpactCommand(options?: {
+  base?: string;
+  repo?: string;
+  json?: boolean;
+}): Promise<void> {
+  const backend = await getBackend();
+  const baseRef = options?.base || 'HEAD~1';
+  
+  const result = await backend.callTool('detect_changes', {
+    scope: 'compare',
+    base_ref: baseRef,
+    repo: options?.repo,
+  });
+
+  if (options?.json) {
+    output(result);
+    return;
+  }
+
+  // Format as Markdown for CI / PR Bot
+  if (result.error) {
+    console.error(`Error: ${result.error}`);
+    process.exit(1);
+  }
+
+  const { summary, changed_symbols, affected_processes } = result;
+
+  let md = `## CodeCortex Impact Analysis\n\n`;
+  
+  if (summary.changed_count === 0) {
+    md += `✅ **No structural code changes detected** against \`${baseRef}\`.\n`;
+    process.stdout.write(md + '\n');
+    return;
+  }
+
+  const riskWarning = 
+    summary.risk_level === 'critical' ? '🚨 **CRITICAL RISK**' :
+    summary.risk_level === 'high' ? '⚠️ **HIGH RISK**' :
+    summary.risk_level === 'medium' ? '🔶 **MEDIUM RISK**' : '✅ **LOW RISK**';
+
+  md += `### ${riskWarning}\n\n`;
+  md += `- **Changed Files:** ${summary.changed_files}\n`;
+  md += `- **Modified Graph Nodes:** ${summary.changed_count}\n`;
+  md += `- **Downstream Processes At Risk:** ${summary.affected_count}\n\n`;
+
+  if (affected_processes && affected_processes.length > 0) {
+    md += `### 💥 Blast Radius (Affected Processes)\n\n`;
+    md += `The following end-to-end execution flows trace through your modified code and should be manually tested:\n\n`;
+    
+    for (const proc of affected_processes) {
+      md += `<details><summary>\`${proc.name || proc.id}\`</summary>\n\n`;
+      md += `- **Type:** ${proc.process_type || 'Unknown'}\n`;
+      md += `- **Total Steps:** ${proc.step_count || '?'}\n`;
+      md += `- **Modified Steps:**\n`;
+      for (const step of proc.changed_steps || []) {
+        md += `  - Step ${step.step}: \`${step.symbol}\`\n`;
+      }
+      md += `\n</details>\n`;
+    }
+  } else {
+    md += `*No major execution flows appear to be structurally affected by this change.*\n`;
+  }
+
+  // Print directly to stdout for bash piping
+  process.stdout.write(md + '\n');
+}
+

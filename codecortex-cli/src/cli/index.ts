@@ -13,7 +13,9 @@ import { cleanCommand } from './clean.js';
 import { setupCommand } from './setup.js';
 import { augmentCommand } from './augment.js';
 import { wikiCommand } from './wiki.js';
-import { queryCommand, contextCommand, impactCommand, cypherCommand } from './tool.js';
+import { queryCommand, contextCommand, impactCommand, cypherCommand, detectImpactCommand } from './tool.js';
+import { diagramCommand } from './diagram.js';
+import { finopsCommand } from './finops.js';
 import { evalServerCommand } from './eval-server.js';
 import { createRequire } from 'node:module';
 const _require = createRequire(import.meta.url);
@@ -119,6 +121,31 @@ program
   .description('Execute raw Cypher query against the knowledge graph')
   .option('-r, --repo <name>', 'Target repository')
   .action(cypherCommand);
+
+program
+  .command('detect-impact')
+  .description('CI/CD Bot: Auto-calculate blast radius against a base ref and output Markdown')
+  .option('--base <ref>', 'Base git branch or commit (default: HEAD~1)', 'HEAD~1')
+  .option('-r, --repo <name>', 'Target repository')
+  .option('--json', 'Output raw JSON instead of markdown')
+  .action(detectImpactCommand);
+
+program
+  .command('diagram')
+  .description('Generate architecture diagram from knowledge graph')
+  .option('-r, --repo <name>', 'Target repository')
+  .option('-f, --format <format>', 'Output format: drawio, mermaid, svg (default: drawio)', 'drawio')
+  .option('-o, --output <file>', 'Output file path (default: stdout)')
+  .option('--include-external', 'Include external dependencies in diagram')
+  .action(diagramCommand);
+
+program
+  .command('finops')
+  .description('Detect FinOps issues in codebase')
+  .option('-r, --repo <name>', 'Target repository')
+  .option('-s, --severity <level>', 'Filter by severity: all, critical, high, medium, low (default: all)', 'all')
+  .option('--json', 'Output raw JSON instead of markdown')
+  .action(finopsCommand);
 
 // ─── Eval Server (persistent daemon for SWE-bench) ─────────────────
 
